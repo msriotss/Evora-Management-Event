@@ -6,117 +6,102 @@ export const BackgroundMascots: React.FC = () => {
       className="fixed inset-0 pointer-events-none overflow-hidden z-0"
       aria-hidden="true"
     >
-      {/* 1. Cute Pink Cloud/Flower Character (Kiri Atas) */}
+      {/* 1. Kamera (Kiri Atas) */}
       <div
-        className="absolute top-[7%] left-[4%] w-28 h-28 blur-[6px] opacity-65 float-a"
-        style={{ '--r': '-10deg' } as React.CSSProperties}
-      >
-        <svg viewBox="0 0 80 80" fill="none">
-          <path
-            d="M24 22c6-8 18-8 24 0 10-2 18 6 16 16 7 7 5 19-4 23-6 9-20 9-26 0-10-3-13-15-6-23-3-9 5-18 16-16z"
-            fill="#F9A8D4"
-          />
-          <ellipse cx="32" cy="40" rx="3.5" ry="4.5" fill="#1E1B4B" />
-          <circle cx="31" cy="38.5" r="1.2" fill="#FFF" />
-          <ellipse cx="48" cy="40" rx="3.5" ry="4.5" fill="#1E1B4B" />
-          <circle cx="47" cy="38.5" r="1.2" fill="#FFF" />
-          <circle cx="26" cy="44" r="3" fill="#F472B6" opacity="0.6" />
-          <circle cx="54" cy="44" r="3" fill="#F472B6" opacity="0.6" />
-          <path
-            d="M37 44c1.5 2 4.5 2 6 0"
-            stroke="#1E1B4B"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </svg>
-      </div>
-
-      {/* 2. Cute Orange Circle Ticket/Event Character (Kanan Atas) */}
-      <div
-        className="absolute top-[9%] right-[5%] w-24 h-24 blur-[5px] opacity-65 float-b"
-        style={{ '--r': '12deg' } as React.CSSProperties}
-      >
-        <svg viewBox="0 0 80 80" fill="none">
-          <circle cx="40" cy="40" r="28" fill="#FB923C" />
-          <ellipse cx="31" cy="39" rx="3.5" ry="4.5" fill="#1E1B4B" />
-          <circle cx="30" cy="37.5" r="1.2" fill="#FFF" />
-          <ellipse cx="49" cy="39" rx="3.5" ry="4.5" fill="#1E1B4B" />
-          <circle cx="48" cy="37.5" r="1.2" fill="#FFF" />
-          <path
-            d="M36 45c2 2.5 6 2.5 8 0"
-            stroke="#1E1B4B"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          <path
-            d="M54 20l1.5 3.5 3.5 1.5-3.5 1.5-1.5 3.5-1.5-3.5-3.5-1.5 3.5-1.5z"
-            fill="#FDE047"
-          />
-        </svg>
-      </div>
-
-      {/* 3. Cute Blue Pentagon Star Character (Kiri Bawah) */}
-      <div
-        className="absolute bottom-[8%] left-[6%] w-28 h-28 blur-[6px] opacity-60 float-b"
-        style={{ '--r': '8deg' } as React.CSSProperties}
-      >
-        <svg viewBox="0 0 80 80" fill="none">
-          <path
-            d="M40 12L66 31L56 62H24L14 31L40 12Z"
-            fill="#60A5FA"
-            stroke="#60A5FA"
-            strokeWidth="6"
-            strokeLinejoin="round"
-          />
-          <ellipse cx="32" cy="40" rx="3.5" ry="4.5" fill="#1E1B4B" />
-          <circle cx="31" cy="38.5" r="1.2" fill="#FFF" />
-          <ellipse cx="48" cy="40" rx="3.5" ry="4.5" fill="#1E1B4B" />
-          <circle cx="47" cy="38.5" r="1.2" fill="#FFF" />
-          <path
-            d="M37 45c1.5 2 4.5 2 6 0"
-            stroke="#1E1B4B"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </svg>
-      </div>
-
-      {/* 4. Cute Mint Square Character (Kanan Bawah) */}
-      <div
-        className="absolute bottom-[10%] right-[6%] w-24 h-24 blur-[5.5px] opacity-65 float-a"
+        className="absolute top-[7%] left-[4%] w-28 h-28 blur-[4.5px] opacity-60 float-a"
         style={{ '--r': '-12deg' } as React.CSSProperties}
       >
         <svg viewBox="0 0 80 80" fill="none">
-          <rect x="15" y="15" width="50" height="50" rx="16" fill="#5EEAD4" />
-          <ellipse cx="32" cy="39" rx="3.5" ry="4.5" fill="#1E1B4B" />
-          <circle cx="31" cy="37.5" r="1.2" fill="#FFF" />
-          <ellipse cx="48" cy="39" rx="3.5" ry="4.5" fill="#1E1B4B" />
-          <circle cx="47" cy="37.5" r="1.2" fill="#FFF" />
-          <circle cx="25" cy="44" r="2.8" fill="#14B8A6" opacity="0.5" />
-          <circle cx="55" cy="44" r="2.8" fill="#14B8A6" opacity="0.5" />
+          <rect x="12" y="24" width="56" height="40" rx="12" fill="#377EC0" />
+          <rect x="28" y="16" width="24" height="10" rx="4" fill="#9FD2D6" />
+          <circle cx="40" cy="44" r="13" fill="#FFF" />
+          <circle cx="40" cy="44" r="8" fill="#5460AC" />
+          <circle cx="37" cy="41" r="2.5" fill="#9FD2D6" />
+          <circle cx="57" cy="32" r="3" fill="#FBDF54" />
+        </svg>
+      </div>
+
+      {/* 2. Mic Panggung (Kanan Atas) */}
+      <div
+        className="absolute top-[9%] right-[5%] w-24 h-24 blur-[4.5px] opacity-60 float-b"
+        style={{ '--r': '14deg' } as React.CSSProperties}
+      >
+        <svg viewBox="0 0 80 80" fill="none">
+          <circle cx="46" cy="28" r="14" fill="#F7891F" />
+          <path d="M36 22l20 12" stroke="#FBDF54" strokeWidth="3" strokeLinecap="round" />
+          <rect
+            x="22"
+            y="36"
+            width="12"
+            height="28"
+            rx="5"
+            transform="rotate(35 22 36)"
+            fill="#5460AC"
+          />
+          <circle cx="58" cy="18" r="3.5" fill="#FBDF54" />
+        </svg>
+      </div>
+
+      {/* 3. Baju / Kaos Panitia (Kiri Bawah) */}
+      <div
+        className="absolute bottom-[9%] left-[5%] w-28 h-28 blur-[5px] opacity-55 float-b"
+        style={{ '--r': '10deg' } as React.CSSProperties}
+      >
+        <svg viewBox="0 0 80 80" fill="none">
           <path
-            d="M37 44c1.5 2 4.5 2 6 0"
-            stroke="#1E1B4B"
-            strokeWidth="2"
+            d="M24 18L10 28L16 40L24 35V64H56V35L64 40L70 28L56 18C52 24 46 26 40 26C34 26 28 24 24 18Z"
+            fill="#F04F52"
+          />
+          <circle cx="40" cy="43" r="6" fill="#FBDF54" />
+        </svg>
+      </div>
+
+      {/* 4. Kalender Event (Kanan Bawah) */}
+      <div
+        className="absolute bottom-[10%] right-[5%] w-26 h-26 blur-[4.5px] opacity-60 float-a"
+        style={{ '--r': '-10deg' } as React.CSSProperties}
+      >
+        <svg viewBox="0 0 80 80" fill="none">
+          <rect x="14" y="18" width="52" height="48" rx="14" fill="#5460AC" />
+          <rect x="14" y="18" width="52" height="16" rx="8" fill="#377EC0" />
+          <rect x="24" y="11" width="7" height="13" rx="3.5" fill="#9FD2D6" />
+          <rect x="49" y="11" width="7" height="13" rx="3.5" fill="#9FD2D6" />
+          <rect x="24" y="40" width="10" height="10" rx="3" fill="#FBDF54" />
+          <rect x="46" y="40" width="10" height="10" rx="3" fill="#12BAAA" />
+        </svg>
+      </div>
+
+      {/* 5. Waktu / Jam Countdown (Tengah Atas) */}
+      <div
+        className="absolute top-[5%] left-[46%] w-20 h-20 blur-[5.5px] opacity-50 float-a"
+        style={{ '--r': '16deg' } as React.CSSProperties}
+      >
+        <svg viewBox="0 0 80 80" fill="none">
+          <circle cx="40" cy="42" r="24" fill="#12BAAA" />
+          <circle cx="40" cy="42" r="17" fill="#FFF" opacity="0.85" />
+          <rect x="35" y="11" width="10" height="6" rx="3" fill="#377EC0" />
+          <path
+            d="M40 31V42L48 47"
+            stroke="#5460AC"
+            strokeWidth="4"
             strokeLinecap="round"
+            strokeLinejoin="round"
           />
         </svg>
       </div>
 
-      {/* 5. Cute Yellow Ticket/Smile Character (Tengah Atas Samar) */}
+      {/* 6. Tiket / Star Badge (Tengah Kiri) */}
       <div
-        className="absolute top-[6%] left-[47%] w-20 h-20 blur-[7px] opacity-50 float-a"
-        style={{ '--r': '14deg' } as React.CSSProperties}
+        className="hidden lg:block absolute top-[45%] left-[2%] w-20 h-20 blur-[5.5px] opacity-45 float-b"
+        style={{ '--r': '-16deg' } as React.CSSProperties}
       >
         <svg viewBox="0 0 80 80" fill="none">
-          <rect x="14" y="20" width="52" height="40" rx="14" fill="#FCD34D" />
-          <ellipse cx="32" cy="39" rx="3" ry="4" fill="#1E1B4B" />
-          <ellipse cx="48" cy="39" rx="3" ry="4" fill="#1E1B4B" />
+          <rect x="10" y="22" width="60" height="36" rx="10" fill="#FBDF54" />
+          <circle cx="10" cy="40" r="6" fill="#E8F5FA" />
+          <circle cx="70" cy="40" r="6" fill="#E8F5FA" />
           <path
-            d="M37 44c1.5 2 4.5 2 6 0"
-            stroke="#1E1B4B"
-            strokeWidth="2"
-            strokeLinecap="round"
+            d="M40 31l2.5 5 5.5.8-4 3.9.9 5.5L40 43.6l-4.9 2.6.9-5.5-4-3.9 5.5-.8z"
+            fill="#F7891F"
           />
         </svg>
       </div>
