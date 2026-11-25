@@ -9,6 +9,7 @@ interface ChibiAvatarProps {
   isExpressing?: boolean;
   holdingCamera?: boolean;
   cameraFlashActive?: boolean;
+  emptyProfile?: boolean;
   className?: string;
   title?: string;
 }
@@ -33,6 +34,7 @@ export const ChibiAvatar = forwardRef<SVGSVGElement, ChibiAvatarProps>(
       isExpressing = false,
       holdingCamera = false,
       cameraFlashActive = false,
+      emptyProfile = false,
       className = 'w-40 h-52',
       title,
     },
@@ -899,7 +901,40 @@ export const ChibiAvatar = forwardRef<SVGSVGElement, ChibiAvatarProps>(
       );
     };
 
-    const characterArtwork = (
+    const emptyBlankArtwork = (
+      <g>
+        {/* Simple neutral shoes, pants, arms & tee */}
+        <g>
+          <rect x="86" y="272" width="28" height="18" rx="8" fill="#CBD5E1" stroke="#94A3B8" strokeWidth="1.5" />
+          <rect x="126" y="272" width="28" height="18" rx="8" fill="#CBD5E1" stroke="#94A3B8" strokeWidth="1.5" />
+          <path d="M84 218 L156 218 L156 254 L126 254 L120 236 L114 254 L84 254 Z" fill="#94A3B8" stroke="#64748B" strokeWidth="1.8" />
+          <path d="M84 176 L58 214" stroke="#E2E8F0" strokeWidth="18" strokeLinecap="round" />
+          <circle cx="55" cy="218" r="10" fill="#F1F5F9" stroke="#CBD5E1" strokeWidth="1.5" />
+          <path d="M156 176 L182 214" stroke="#E2E8F0" strokeWidth="18" strokeLinecap="round" />
+          <circle cx="185" cy="218" r="10" fill="#F1F5F9" stroke="#CBD5E1" strokeWidth="1.5" />
+          <path d="M84 170 Q120 162 156 170 L160 226 Q120 232 80 226 Z" fill="#E2E8F0" stroke="#94A3B8" strokeWidth="2" />
+          <rect x="109" y="156" width="22" height="18" rx="8" fill="#CBD5E1" />
+        </g>
+        {/* Ears */}
+        <circle cx="62" cy="118" r="12" fill="#F1F5F9" stroke="#CBD5E1" strokeWidth="2" />
+        <circle cx="178" cy="118" r="12" fill="#F1F5F9" stroke="#CBD5E1" strokeWidth="2" />
+        <circle cx="62" cy="118" r="6" fill="#CBD5E1" opacity="0.55" />
+        <circle cx="178" cy="118" r="6" fill="#CBD5E1" opacity="0.55" />
+        {/* Bald Head Without Face */}
+        <path
+          d="M64 114 C64 72 86 58 120 58 C154 58 176 72 176 114 C176 150 154 166 120 166 C86 166 64 150 64 114 Z"
+          fill="#F8FAFC"
+          stroke="#CBD5E1"
+          strokeWidth="2.4"
+        />
+        {/* Subtle bald head shine highlight */}
+        <ellipse cx="100" cy="78" rx="14" ry="6" transform="rotate(-18 100 78)" fill="#FFFFFF" opacity="0.9" />
+      </g>
+    );
+
+    const characterArtwork = emptyProfile ? (
+      emptyBlankArtwork
+    ) : (
       <g>
         {renderHairBack()}
         {renderBodyAndOutfit()}

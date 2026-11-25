@@ -2,15 +2,16 @@ import { useEffect, useState } from 'react';
 import {
   Menu,
   X,
-  CalendarCheck,
-  MapPin,
-  QrCode,
-  ShieldCheck,
   ArrowRight,
-  Flame,
+  Bot,
+  MessageCircle,
+  Mail,
+  Instagram,
+  Send,
+  Users,
 } from 'lucide-react';
 import { BackgroundMascots } from './components/BackgroundMascots';
-import { RoleMascot, UserRole } from './components/EvoraMascots';
+import { UserRole } from './components/EvoraMascots';
 import { HeroShowcase } from './components/HeroShowcase';
 import { InteractiveEventMap } from './components/InteractiveEventMap';
 import { AuthModal } from './components/AuthModal';
@@ -21,6 +22,7 @@ import { EventQuestGame } from './components/EventQuestGame';
 import { ChibiAvatar } from './components/ChibiAvatar';
 import { ProfilePage } from './components/ProfilePage';
 import { AppRoadmapPath } from './components/AppRoadmapPath';
+import { AiAssistantModal } from './components/AiAssistantModal';
 import { INITIAL_AVATAR, INITIAL_EVENTS, INITIAL_ORDERS, INITIAL_STREAK } from './data/initialData';
 import { AvatarConfig, EventItem, StreakState, TicketOrder, UserAccount } from './types/evora';
 
@@ -55,6 +57,13 @@ export default function App() {
 
   // 2D Mini-Game state
   const [gameOpen, setGameOpen] = useState(false);
+
+  // Bot AI & Feedback state
+  const [aiBotOpen, setAiBotOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackSubject, setFeedbackSubject] = useState('');
+  const [feedbackBody, setFeedbackBody] = useState('');
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
 
   // Toast feedback
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -291,8 +300,6 @@ export default function App() {
     showToast(`Quest selesai! Skor ${score} (Combo ${maxCombo}x).`);
   };
 
-  const publishedCount = events.filter((e) => e.status === 'published').length;
-
   return (
     <div className="min-h-screen relative overflow-x-hidden flex flex-col">
       <BackgroundMascots />
@@ -376,7 +383,12 @@ export default function App() {
                 activePage === 'profile' ? 'border-[#377EC0] ring-2 ring-[#9FD2D6]' : 'border-[#9FD2D6]'
               }`}
             >
-              <ChibiAvatar config={avatar} mode="head" className="w-9 h-9" />
+              <ChibiAvatar
+                config={avatar}
+                mode="head"
+                emptyProfile={!currentUser}
+                className="w-9 h-9"
+              />
             </button>
 
             {currentUser ? (
@@ -385,7 +397,7 @@ export default function App() {
                 onClick={() => scrollToSection('workspace')}
                 className="px-4 py-2 text-xs sm:text-sm font-extrabold text-white bg-[#377EC0] hover:bg-[#5460AC] rounded-xl shadow-sm transition-colors whitespace-nowrap shrink-0 cursor-pointer"
               >
-                Dashboard ({currentUser.role === 'organizer' ? 'Panitia' : currentUser.role === 'admin' ? 'Admin' : 'Peserta'})
+                {currentUser.name}
               </button>
             ) : (
               <button
@@ -444,7 +456,7 @@ export default function App() {
 
       <main id="top" className="relative z-10 flex-1">
         {toastMessage && (
-          <div className="fixed bottom-5 right-5 z-50 max-w-sm bg-slate-900 text-white text-xs font-extrabold px-4 py-3 rounded-2xl shadow-xl border border-[#9FD2D6]/40">
+          <div className="fixed bottom-20 right-5 z-50 max-w-sm bg-slate-900 text-white text-xs font-extrabold px-4 py-3 rounded-2xl shadow-xl border border-[#9FD2D6]/40">
             {toastMessage}
           </div>
         )}
@@ -452,13 +464,11 @@ export default function App() {
         {activePage === 'profile' ? (
           <ProfilePage
             avatar={avatar}
-            streak={streak}
             currentUser={currentUser}
             onChangeAvatar={handleUpdateAvatar}
             onSetAsIcon={() => {
               showToast('Avatar berhasil disimpan dan dipasang sebagai Icon Profil EVORA!');
             }}
-            onToggleFreeze={handleToggleStreakFreeze}
             onBackHome={() => {
               setActivePage('home');
               window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -467,7 +477,7 @@ export default function App() {
           />
         ) : (
           <>
-            {/* 1. DASHBOARD AWAL DI ATAS */}
+            {/* 1. BAR AWAL PENGGUNA & KHUSUS PENYELENGGARA */}
             {currentUser ? (
               <RoleDashboards
                 currentUser={currentUser}
@@ -489,49 +499,50 @@ export default function App() {
                 onGoToMap={() => scrollToSection('peta-event')}
               />
             ) : (
-              <section id="workspace" className="pt-5 pb-2">
+              <section id="daftar-panitia" className="pt-5 pb-2">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                  <div className="bg-white/90 backdrop-blur-md rounded-[26px] p-4 sm:px-6 sm:py-4 border border-[#9FD2D6]/70 shadow-lg shadow-[#377EC0]/10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  <div className="bg-white/95 backdrop-blur-md rounded-[28px] p-4 sm:px-6 sm:py-4 border border-[#9FD2D6]/70 shadow-lg shadow-[#377EC0]/10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div className="flex items-center gap-3.5">
                       <button
                         type="button"
                         onClick={openProfilePage}
                         className="w-12 h-12 rounded-2xl bg-[#E8F5FA] border border-[#9FD2D6] flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:scale-105 transition-transform"
-                        title="Edit Avatar Profil"
+                        title="Lihat Profil Avatar"
                       >
-                        <ChibiAvatar config={avatar} mode="head" softShadow={false} className="w-11 h-11" />
+                        <ChibiAvatar
+                          config={avatar}
+                          mode="head"
+                          emptyProfile
+                          softShadow={false}
+                          className="w-11 h-11"
+                        />
                       </button>
                       <div>
-                        <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#377EC0]">
-                          Dashboard Awal EVORA
+                        <p className="text-xs sm:text-sm font-extrabold text-slate-900">
+                          Tamu (Belum Sign In / Sign Up)
                         </p>
-                        <p className="text-xs sm:text-sm font-extrabold text-slate-800 tabular-nums">
-                          {publishedCount} Event Live · {streak.monthlyEventsHosted} Event Panitia · {orders.length} Tiket Aktif
+                        <p className="text-[11px] sm:text-xs font-bold text-[#F7891F]">
+                          Khusus Penyelenggara & Komunitas · Daftar jadi panitia, pin Google Maps & kumpulkan streak bulanan!
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openAuth('login', 'peserta')}
-                        className="px-3.5 py-2 rounded-xl bg-[#FDECEC] hover:bg-[#FBD5D5] text-[#F04F52] text-xs font-extrabold cursor-pointer transition-colors"
-                      >
-                        Dashboard Peserta
-                      </button>
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
                       <button
                         type="button"
                         onClick={() => openAuth('register', 'organizer')}
-                        className="px-3.5 py-2 rounded-xl bg-[#FFF4E5] hover:bg-[#FFE8C7] text-[#F7891F] text-xs font-extrabold cursor-pointer transition-colors"
+                        className="px-4 py-2.5 rounded-xl bg-[#377EC0] hover:bg-[#5460AC] text-white text-xs font-extrabold inline-flex items-center gap-1.5 shadow-sm cursor-pointer transition-colors"
                       >
-                        Dashboard Panitia
+                        <Users className="w-3.5 h-3.5" />
+                        Registrasi Akun Panitia
+                        <ArrowRight className="w-3.5 h-3.5" />
                       </button>
                       <button
                         type="button"
-                        onClick={() => openAuth('login', 'admin')}
-                        className="px-3.5 py-2 rounded-xl bg-[#E8F5FA] hover:bg-[#9FD2D6]/50 text-[#5460AC] text-xs font-extrabold cursor-pointer transition-colors"
+                        onClick={() => openAuth('login', 'peserta')}
+                        className="px-4 py-2.5 rounded-xl bg-[#E8F5FA] hover:bg-[#9FD2D6]/50 text-[#377EC0] text-xs font-extrabold cursor-pointer transition-colors"
                       >
-                        Dashboard Admin
+                        Sign In / Sign Up
                       </button>
                     </div>
                   </div>
@@ -543,12 +554,12 @@ export default function App() {
             <HeroShowcase
               avatar={avatar}
               userName={currentUser?.name ?? null}
+              isAuthenticated={Boolean(currentUser)}
               isFrozen={streak.isFrozen}
               onExploreMap={() => scrollToSection('peta-event')}
               onOpenAuth={openAuth}
               onOpenGame={() => setGameOpen(true)}
               onOpenProfile={openProfilePage}
-              publishedCount={publishedCount}
               streakDays={streak.currentDays}
               monthlyHosted={streak.monthlyEventsHosted}
             />
@@ -571,104 +582,160 @@ export default function App() {
               onCreateEventClick={() => openAuth('register', 'organizer')}
             />
 
-        {/* 5. DAFTAR JADI PANITIA SECTION */}
-        <section id="daftar-panitia" className="py-8 md:py-10">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="bg-white rounded-[32px] p-6 sm:p-10 shadow-xl shadow-[#377EC0]/10 border border-[#9FD2D6]/60 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-              <div className="lg:col-span-7 space-y-4">
-                <p className="text-xs font-extrabold tracking-widest uppercase text-[#F7891F]">
-                  Khusus Penyelenggara & Komunitas
-                </p>
-                <h2 className="font-pixel text-2xl sm:text-4xl text-slate-900 tracking-tight text-balance">
-                  Daftar jadi panitia, kumpulkan streak bulanan!
-                </h2>
-                <p className="text-sm font-bold text-slate-600 leading-relaxed max-w-xl">
-                  Tentukan titik lokasi acara di Google Maps real-time, atur tiket dan kode promo, susun rundown serta pembicara, dan tingkatkan streak panitia setiap bulan.
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                  <div className="p-4 rounded-2xl bg-[#E8F5FA] flex items-start gap-3">
-                    <MapPin className="w-5 h-5 text-[#377EC0] shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs font-extrabold text-slate-900">Pin Google Maps Real-time</p>
-                      <p className="text-[11px] font-bold text-slate-600">
-                        Peserta langsung temukan lokasi & jarak acaramu.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-[#FFF4E5] flex items-start gap-3">
-                    <Flame className="w-5 h-5 text-[#F7891F] shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs font-extrabold text-slate-900">Streak Bulanan</p>
-                      <p className="text-[11px] font-bold text-slate-600">
-                        Naikkan tier Blue Flame hingga Rainbow Panitia.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="lg:col-span-5 bg-[#E8F5FA] rounded-[28px] p-6 sm:p-7 space-y-4 border border-[#9FD2D6]">
-                <div className="flex items-center gap-3">
-                  <RoleMascot role="organizer" className="w-12 h-12 shrink-0" />
-                  <div>
-                    <h3 className="font-pixel text-xl text-slate-900">
-                      Mulai Buat Event
-                    </h3>
-                    <p className="text-xs font-bold text-slate-600">
-                      Registrasi cepat dengan verifikasi email OTP
-                    </p>
-                  </div>
-                </div>
-
-                <ul className="space-y-2 text-xs text-slate-700 font-bold">
-                  <li className="flex items-center gap-2">
-                    <CalendarCheck className="w-4 h-4 text-[#377EC0] shrink-0" />
-                    Input detail event, tiket, promo & rundown
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <QrCode className="w-4 h-4 text-[#12BAAA] shrink-0" />
-                    Check-in QR peserta & laporan evaluasi
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-[#5460AC] shrink-0" />
-                    Review transparan oleh Admin Platform
-                  </li>
-                </ul>
-
-                <button
-                  type="button"
-                  onClick={() => openAuth('register', 'organizer')}
-                  className="w-full py-3.5 bg-[#377EC0] hover:bg-[#5460AC] text-white text-sm font-extrabold rounded-2xl shadow-md shadow-[#377EC0]/25 inline-flex items-center justify-center gap-2 transition-all cursor-pointer"
-                >
-                  Registrasi Akun Panitia
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 6. PETA JALAN ALUR APLIKASI (STEP-BY-STEP ROADMAP) */}
-        <AppRoadmapPath
-          onStepLogin={() => openAuth('login', 'peserta')}
-          onStepProfile={openProfilePage}
-          onStepMap={() => scrollToSection('peta-event')}
-          onStepStreak={() => scrollToSection('streak-panitia')}
-        />
+            {/* 5. PETA JALAN ALUR APLIKASI (STEP-BY-STEP ROADMAP) */}
+            <AppRoadmapPath
+              onStepLogin={() => openAuth('login', 'peserta')}
+              onStepProfile={openProfilePage}
+              onStepMap={() => scrollToSection('peta-event')}
+              onStepStreak={() => scrollToSection('streak-panitia')}
+            />
           </>
         )}
       </main>
 
-      {/* QUIET FOOTER */}
-      <footer className="relative z-10 border-t border-[#9FD2D6]/60 bg-white/50 backdrop-blur-sm py-6">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-bold text-slate-500">
-          <span className="font-pixel text-base text-[#377EC0]">
-            EVORA — Event Management Platform
-          </span>
-          <span>Google Maps Lokasi · Streak Panitia Bulanan · Mini-Game Quest</span>
+      {/* CREATOR, CUSTOMER SERVICE WA, INSTAGRAM, BOT AI & GMAIL FEEDBACK FOOTER */}
+      <footer className="relative z-10 border-t border-[#9FD2D6]/60 bg-white/80 backdrop-blur-md py-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="text-center md:text-left">
+              <p className="font-pixel text-lg text-[#1E3A8A]">
+                Muhammad Satrio Wibisono
+              </p>
+              <p className="text-xs font-bold text-slate-500">
+                Ada keluh kesah, masukan, atau butuh bantuan? Hubungi layanan di samping.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-2.5">
+              <a
+                href="https://instagram.com/msriotsss"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="min-h-[40px] px-3.5 py-2 rounded-xl bg-[#FDF2F8] hover:bg-[#FCE7F3] text-[#DB2777] border border-[#FBCFE8] text-xs font-extrabold inline-flex items-center gap-1.5 transition-colors"
+              >
+                <Instagram className="w-4 h-4" />
+                @msriotsss
+              </a>
+
+              <a
+                href="https://wa.me/6289603963329"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="min-h-[40px] px-3.5 py-2 rounded-xl bg-[#E6F9F7] hover:bg-[#CCFBF1] text-[#0F766E] border border-[#99F6E4] text-xs font-extrabold inline-flex items-center gap-1.5 transition-colors"
+              >
+                <MessageCircle className="w-4 h-4" />
+                CS WhatsApp: 089603963329
+              </a>
+
+              <button
+                type="button"
+                onClick={() => setAiBotOpen(true)}
+                className="min-h-[40px] px-3.5 py-2 rounded-xl bg-[#377EC0] hover:bg-[#5460AC] text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
+              >
+                <Bot className="w-4 h-4 text-[#FBDF54]" />
+                Bot AI EVORA
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setFeedbackOpen((prev) => !prev);
+                  setFeedbackError(null);
+                }}
+                className="min-h-[40px] px-3.5 py-2 rounded-xl bg-[#FFF4E5] hover:bg-[#FDE68A] text-[#B45309] border border-[#FBDF54] text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+              >
+                <Mail className="w-4 h-4" />
+                Keluh Kesah & Masukan (msriotss@gmail.com)
+              </button>
+            </div>
+          </div>
+
+          {feedbackOpen && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!feedbackSubject.trim() || feedbackBody.trim().length < 5) {
+                  setFeedbackError('Isi judul dan isi keluh kesah/masukan minimal 5 karakter.');
+                  return;
+                }
+                setFeedbackError(null);
+                const mailtoUrl = `mailto:msriotss@gmail.com?subject=${encodeURIComponent(
+                  `[EVORA Masukan] ${feedbackSubject.trim()}`
+                )}&body=${encodeURIComponent(
+                  `${feedbackBody.trim()}\n\nDari: ${currentUser ? `${currentUser.name} (${currentUser.email})` : 'Pengunjung EVORA'}`
+                )}`;
+                window.location.href = mailtoUrl;
+                setFeedbackSubject('');
+                setFeedbackBody('');
+                setFeedbackOpen(false);
+                showToast('Aplikasi email siap mengirim keluh kesah & masukan ke msriotss@gmail.com!');
+              }}
+              className="bg-[#F4FAFC] border border-[#9FD2D6] rounded-2xl p-4 space-y-3"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-extrabold text-[#1E3A8A]">
+                  Kirim Keluh Kesah & Masukan ke msriotss@gmail.com
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setFeedbackOpen(false)}
+                  className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                  aria-label="Tutup form masukan"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <input
+                  type="text"
+                  value={feedbackSubject}
+                  onChange={(e) => setFeedbackSubject(e.target.value)}
+                  placeholder="Subjek (mis. Saran fitur peta)"
+                  className="sm:col-span-1 px-3.5 py-2.5 rounded-xl bg-white border border-[#9FD2D6]/80 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#377EC0]"
+                />
+                <input
+                  type="text"
+                  value={feedbackBody}
+                  onChange={(e) => setFeedbackBody(e.target.value)}
+                  placeholder="Tulis keluh kesah atau masukanmu di sini..."
+                  className="sm:col-span-2 px-3.5 py-2.5 rounded-xl bg-white border border-[#9FD2D6]/80 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#377EC0]"
+                />
+              </div>
+              {feedbackError && (
+                <p className="text-xs font-bold text-[#F04F52]">{feedbackError}</p>
+              )}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <a
+                  href="https://mail.google.com/mail/?view=cm&fs=1&to=msriotss@gmail.com&su=Keluh%20Kesah%20%26%20Masukan%20EVORA"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] font-extrabold text-[#377EC0] hover:underline"
+                >
+                  Atau buka langsung Gmail Web →
+                </a>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl bg-[#377EC0] hover:bg-[#5460AC] text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  Kirim ke Gmail
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       </footer>
+
+      {/* Floating Bot AI Launcher */}
+      <button
+        type="button"
+        onClick={() => setAiBotOpen(true)}
+        aria-label="Buka Bot AI EVORA"
+        className="fixed bottom-5 right-5 z-40 px-4 py-3 rounded-full bg-[#377EC0] hover:bg-[#5460AC] text-white text-xs font-extrabold shadow-xl shadow-[#377EC0]/30 border-2 border-white inline-flex items-center gap-2 cursor-pointer transition-transform hover:scale-105"
+      >
+        <Bot className="w-4 h-4 text-[#FBDF54]" />
+        <span>Bot AI</span>
+      </button>
 
       {/* MODALS & GAME SHELL */}
       <AuthModal
@@ -691,6 +758,12 @@ export default function App() {
         bestScore={streak.questBestScore}
         onClose={() => setGameOpen(false)}
         onCompleteRound={handleGameComplete}
+      />
+
+      <AiAssistantModal
+        isOpen={aiBotOpen}
+        onClose={() => setAiBotOpen(false)}
+        userName={currentUser?.name ?? null}
       />
     </div>
   );

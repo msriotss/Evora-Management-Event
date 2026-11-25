@@ -9,6 +9,7 @@ import {
   Gamepad2,
   Snowflake,
   Camera,
+  LogIn,
 } from 'lucide-react';
 import { AvatarConfig } from '../types/evora';
 import { ChibiAvatar } from './ChibiAvatar';
@@ -16,12 +17,12 @@ import { ChibiAvatar } from './ChibiAvatar';
 interface HeroShowcaseProps {
   avatar: AvatarConfig;
   userName: string | null;
+  isAuthenticated: boolean;
   isFrozen: boolean;
   onExploreMap: () => void;
   onOpenAuth: (mode: 'login' | 'register', role?: 'peserta' | 'organizer') => void;
   onOpenGame: () => void;
   onOpenProfile: () => void;
-  publishedCount: number;
   streakDays: number;
   monthlyHosted: number;
 }
@@ -29,12 +30,12 @@ interface HeroShowcaseProps {
 export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
   avatar,
   userName,
+  isAuthenticated,
   isFrozen,
   onExploreMap,
   onOpenAuth,
   onOpenGame,
   onOpenProfile,
-  publishedCount,
   streakDays,
   monthlyHosted,
 }) => {
@@ -42,9 +43,10 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
   const [snapCount, setSnapCount] = useState(0);
   const flashTimerRef = useRef<number | null>(null);
 
-  const displayName = userName?.trim() ? userName.trim() : 'Sobat EVORA';
+  const displayName = userName?.trim() ? userName.trim() : 'Profil Kosong';
 
   const triggerPhotoSnap = () => {
+    if (!isAuthenticated) return;
     if (flashTimerRef.current) {
       window.clearTimeout(flashTimerRef.current);
     }
@@ -55,8 +57,12 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
     }, 820);
   };
 
-  // Trigger camera flash + personalized greeting when entering website or logging in
+  // Trigger camera flash + personalized greeting when entering website while authenticated or upon login
   useEffect(() => {
+    if (!isAuthenticated) {
+      setFlashActive(false);
+      return;
+    }
     const entryDelay = window.setTimeout(() => {
       triggerPhotoSnap();
     }, 320);
@@ -64,15 +70,15 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
       window.clearTimeout(entryDelay);
       if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current);
     };
-  }, [userName]);
+  }, [isAuthenticated, userName]);
 
-  const speechHeadline = userName?.trim()
+  const speechHeadline = isAuthenticated
     ? `Cekrek! Halo, ${displayName}!`
-    : 'Cekrek! Halo, Sobat EVORA!';
+    : 'Profil Masih Kosong';
 
-  const speechSub = userName?.trim()
+  const speechSub = isAuthenticated
     ? 'Siap seru-seruan & kejar streak?'
-    : 'Yuk login atau edit avatarmu!';
+    : 'Yuk Sign In / Sign Up untuk buka avatarmu!';
 
   return (
     <section className="pt-6 pb-8 md:pt-10 md:pb-14 relative overflow-hidden">
@@ -99,7 +105,7 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
               Eksplorasi lokasi konser, festival, dan workshop di Google Maps secara real-time, atur avatar panitia kustommu, dan raih streak bulanan ala TikTok.
             </p>
 
-            {/* Primary + Secondary Actions */}
+            {/* Primary + Secondary Actions (No caption row below per user request) */}
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 pt-1">
               <button
                 type="button"
@@ -128,20 +134,6 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
                 Main Quest
               </button>
             </div>
-
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 text-xs font-bold text-slate-500 pt-1">
-              <span className="tabular-nums">{publishedCount} Event Aktif</span>
-              <span aria-hidden="true">·</span>
-              <span>Google Maps Real-time</span>
-              <span aria-hidden="true">·</span>
-              <button
-                type="button"
-                onClick={onOpenProfile}
-                className="text-[#377EC0] hover:underline font-extrabold cursor-pointer"
-              >
-                Ganti Avatar & Profil →
-              </button>
-            </div>
           </div>
 
           {/* RIGHT: Clean Contained 3-Phone Layered Stack + Camera Entry Avatar */}
@@ -154,7 +146,7 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
               />
 
               {/* Brief Photographic Flash Glow Overlay on the Stage */}
-              {flashActive && (
+              {isAuthenticated && flashActive && (
                 <div
                   key={`flash-${snapCount}`}
                   className="pointer-events-none absolute inset-0 rounded-[36px] bg-[radial-gradient(circle_at_24%_48%,rgba(255,255,255,0.95),rgba(251,223,84,0.4)_42%,transparent_72%)] z-40 camera-flash-burst"
@@ -162,27 +154,44 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
                 />
               )}
 
-              {/* Personalized Speech Bubble Chat above Avatar Phone (Desktop/Tablet) */}
+              {/* Speech Bubble Chat above Avatar Phone (Desktop/Tablet) */}
               <div
-                key={`bubble-${snapCount}-${displayName}`}
-                className="hidden sm:flex flex-col items-start absolute top-0 left-0 z-40 max-w-[235px] bg-white rounded-2xl px-3.5 py-2.5 shadow-xl shadow-[#377EC0]/20 border-2 border-[#377EC0] bubble-pop"
+                key={`bubble-${snapCount}-${displayName}-${isAuthenticated}`}
+                className="hidden sm:flex flex-col items-start absolute top-0 left-0 z-40 max-w-[240px] bg-white rounded-2xl px-3.5 py-2.5 shadow-xl shadow-[#377EC0]/20 border-2 border-[#377EC0] bubble-pop"
               >
                 <div className="flex items-center justify-between w-full gap-2">
                   <span className="text-[11px] font-extrabold text-[#377EC0] flex items-center gap-1 truncate">
-                    <Camera className="w-3.5 h-3.5 text-[#F7891F] shrink-0" />
+                    {isAuthenticated ? (
+                      <Camera className="w-3.5 h-3.5 text-[#F7891F] shrink-0" />
+                    ) : (
+                      <LogIn className="w-3.5 h-3.5 text-[#377EC0] shrink-0" />
+                    )}
                     {speechHeadline}
                   </span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      triggerPhotoSnap();
-                    }}
-                    className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-[#E8F5FA] hover:bg-[#9FD2D6]/50 text-[#377EC0] shrink-0 cursor-pointer"
-                    title="Potret ulang dengan flash"
-                  >
-                    Cekrek
-                  </button>
+                  {isAuthenticated ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        triggerPhotoSnap();
+                      }}
+                      className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-[#E8F5FA] hover:bg-[#9FD2D6]/50 text-[#377EC0] shrink-0 cursor-pointer"
+                      title="Potret ulang dengan flash"
+                    >
+                      Cekrek
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenAuth('login', 'peserta');
+                      }}
+                      className="text-[9px] font-extrabold px-2 py-0.5 rounded-md bg-[#377EC0] text-white shrink-0 cursor-pointer"
+                    >
+                      Sign In
+                    </button>
+                  )}
                 </div>
                 <p className="text-[10px] font-bold text-slate-600 mt-0.5 leading-snug">
                   {speechSub}
@@ -198,11 +207,15 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
               <div
                 role="button"
                 tabIndex={0}
-                onClick={onOpenProfile}
+                onClick={isAuthenticated ? onOpenProfile : () => onOpenAuth('login', 'peserta')}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    onOpenProfile();
+                    if (isAuthenticated) {
+                      onOpenProfile();
+                    } else {
+                      onOpenAuth('login', 'peserta');
+                    }
                   }
                 }}
                 className="hidden sm:flex flex-col justify-between text-left absolute left-0 top-14 w-[164px] h-[302px] bg-white rounded-[28px] p-3 shadow-xl shadow-[#377EC0]/15 border border-[#9FD2D6]/70 -rotate-6 z-10 hover:z-40 hover:-translate-y-2 transition-all duration-300 cursor-pointer"
@@ -214,9 +227,10 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
                       mode="full"
                       softShadow
                       animateIdle
-                      isExpressing={flashActive}
-                      holdingCamera
-                      cameraFlashActive={flashActive}
+                      emptyProfile={!isAuthenticated}
+                      isExpressing={isAuthenticated && flashActive}
+                      holdingCamera={isAuthenticated}
+                      cameraFlashActive={isAuthenticated && flashActive}
                       className="w-28 h-36"
                     />
                   </div>
@@ -224,16 +238,20 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
                     {displayName}
                   </p>
                   <p className="text-[10px] font-bold text-slate-500 leading-snug">
-                    Klik untuk ganti gaya
+                    {isAuthenticated ? 'Klik untuk ganti gaya' : 'Sign In untuk isi profil'}
                   </p>
                 </div>
 
                 <div className="space-y-1">
                   <div className="w-full py-1.5 rounded-xl bg-[#377EC0] text-white text-[10px] font-extrabold text-center">
-                    Edit Avatar
+                    {isAuthenticated ? 'Edit Avatar' : 'Masuk / Daftar'}
                   </div>
                   <p className="text-[9px] text-center text-[#12BAAA] font-extrabold">
-                    {isFrozen ? `Streak ${streakDays}d (Beku)` : `Streak ${streakDays}d Menyala`}
+                    {isAuthenticated
+                      ? isFrozen
+                        ? `Streak ${streakDays}d (Beku)`
+                        : `Streak ${streakDays}d Menyala`
+                      : 'Avatar belum aktif'}
                   </p>
                 </div>
               </div>
@@ -339,12 +357,12 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
               </button>
             </div>
 
-            {/* Mobile Camera-Holding Avatar Card + Personalized Greeting Bubble (Clean below phone on small screens) */}
+            {/* Mobile Avatar Card + Greeting Bubble */}
             <div className="sm:hidden mt-4 bg-white/95 rounded-[26px] p-3.5 shadow-lg shadow-[#377EC0]/15 border border-[#9FD2D6] flex items-center gap-3">
               <button
                 type="button"
-                onClick={onOpenProfile}
-                aria-label="Buka halaman kustomisasi avatar profil"
+                onClick={isAuthenticated ? onOpenProfile : () => onOpenAuth('login', 'peserta')}
+                aria-label="Buka profil avatar"
                 className="shrink-0 cursor-pointer"
               >
                 <ChibiAvatar
@@ -352,35 +370,52 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
                   mode="full"
                   softShadow
                   animateIdle
-                  isExpressing={flashActive}
-                  holdingCamera
-                  cameraFlashActive={flashActive}
+                  emptyProfile={!isAuthenticated}
+                  isExpressing={isAuthenticated && flashActive}
+                  holdingCamera={isAuthenticated}
+                  cameraFlashActive={isAuthenticated && flashActive}
                   className="w-24 h-28"
                 />
               </button>
               <div className="flex-1 min-w-0 space-y-1.5">
                 <div className="bg-[#E8F5FA] rounded-2xl px-3 py-2 border border-[#9FD2D6] bubble-pop">
                   <p className="text-xs font-extrabold text-[#377EC0] flex items-center gap-1 truncate">
-                    <Camera className="w-3.5 h-3.5 text-[#F7891F] shrink-0" />
+                    {isAuthenticated ? (
+                      <Camera className="w-3.5 h-3.5 text-[#F7891F] shrink-0" />
+                    ) : (
+                      <LogIn className="w-3.5 h-3.5 text-[#377EC0] shrink-0" />
+                    )}
                     {speechHeadline}
                   </p>
                   <p className="text-[11px] font-bold text-slate-600">{speechSub}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={triggerPhotoSnap}
-                    className="px-2.5 py-1.5 rounded-xl bg-[#FBDF54] text-slate-900 text-[11px] font-extrabold cursor-pointer"
-                  >
-                    Cekrek Ulang
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onOpenProfile}
-                    className="px-2.5 py-1.5 rounded-xl bg-[#377EC0] text-white text-[11px] font-extrabold cursor-pointer"
-                  >
-                    Edit Profil
-                  </button>
+                  {isAuthenticated ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={triggerPhotoSnap}
+                        className="px-2.5 py-1.5 rounded-xl bg-[#FBDF54] text-slate-900 text-[11px] font-extrabold cursor-pointer"
+                      >
+                        Cekrek Ulang
+                      </button>
+                      <button
+                        type="button"
+                        onClick={onOpenProfile}
+                        className="px-2.5 py-1.5 rounded-xl bg-[#377EC0] text-white text-[11px] font-extrabold cursor-pointer"
+                      >
+                        Edit Profil
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onOpenAuth('login', 'peserta')}
+                      className="px-3 py-1.5 rounded-xl bg-[#377EC0] text-white text-[11px] font-extrabold cursor-pointer"
+                    >
+                      Sign In / Sign Up
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

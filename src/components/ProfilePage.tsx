@@ -6,25 +6,20 @@ import {
   Shuffle,
   RotateCcw,
   Check,
-  Flame,
-  Snowflake,
   UserCheck,
   LogIn,
   Save,
   DoorOpen,
 } from 'lucide-react';
-import { AvatarConfig, StreakState, UserAccount } from '../types/evora';
+import { AvatarConfig, UserAccount } from '../types/evora';
 import { AVATAR_PALETTES, INITIAL_AVATAR } from '../data/initialData';
 import { ChibiAvatar } from './ChibiAvatar';
-import { StreakFlameBadge } from './StreakFlameBadge';
 
 interface ProfilePageProps {
   avatar: AvatarConfig;
-  streak: StreakState;
   currentUser: UserAccount | null;
   onChangeAvatar: (next: AvatarConfig) => void;
   onSetAsIcon: () => void;
-  onToggleFreeze: () => void;
   onBackHome: () => void;
   onOpenAuth: () => void;
 }
@@ -70,65 +65,173 @@ const BedroomMirrorBackdrop: React.FC = () => (
     className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
     aria-hidden="true"
   >
-    <rect width="360" height="238" fill="#E9F5FB" />
-    <g opacity="0.35" fill="#FFFFFF">
-      <rect x="0" y="0" width="24" height="238" />
-      <rect x="48" y="0" width="24" height="238" />
-      <rect x="96" y="0" width="24" height="238" />
-      <rect x="144" y="0" width="24" height="238" />
-      <rect x="192" y="0" width="24" height="238" />
-      <rect x="240" y="0" width="24" height="238" />
-      <rect x="288" y="0" width="24" height="238" />
-      <rect x="336" y="0" width="24" height="238" />
-    </g>
-    <rect x="0" y="228" width="360" height="10" fill="#FFFFFF" />
-    <rect x="0" y="238" width="360" height="82" fill="#F2D7B6" />
-    <g stroke="#E2B98B" strokeWidth="1.5">
-      <line x1="0" y1="258" x2="360" y2="258" />
-      <line x1="0" y1="280" x2="360" y2="280" />
-      <line x1="0" y1="302" x2="360" y2="302" />
-    </g>
+    <defs>
+      <linearGradient id="wallGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#DCEEFB" />
+        <stop offset="65%" stopColor="#EFF7FD" />
+        <stop offset="100%" stopColor="#DCEAF5" />
+      </linearGradient>
+      <linearGradient id="floorGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#DFBA8F" />
+        <stop offset="45%" stopColor="#EECBA1" />
+        <stop offset="100%" stopColor="#CFA06E" />
+      </linearGradient>
+      <linearGradient id="sunBeam" x1="0.5" y1="0" x2="0.2" y2="1">
+        <stop offset="0%" stopColor="#FFFBEB" stopOpacity="0.55" />
+        <stop offset="60%" stopColor="#FEF3C7" stopOpacity="0.22" />
+        <stop offset="100%" stopColor="#FEF3C7" stopOpacity="0" />
+      </linearGradient>
+      <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#7CC4F0" />
+        <stop offset="100%" stopColor="#D7F0FC" />
+      </linearGradient>
+      <linearGradient id="mirrorGlass" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stopColor="#E6F7FF" />
+        <stop offset="50%" stopColor="#C3E7F7" />
+        <stop offset="100%" stopColor="#A6D5EA" />
+      </linearGradient>
+      <linearGradient id="wardrobeBody" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stopColor="#FAF0E1" />
+        <stop offset="82%" stopColor="#EFE0CA" />
+        <stop offset="100%" stopColor="#DFC7A7" />
+      </linearGradient>
+      <radialGradient id="fairyGlow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stopColor="#FDE047" stopOpacity="0.85" />
+        <stop offset="100%" stopColor="#FDE047" stopOpacity="0" />
+      </radialGradient>
+    </defs>
 
-    <rect x="132" y="24" width="96" height="82" rx="12" fill="#FFFFFF" stroke="#9FD2D6" strokeWidth="3" />
-    <rect x="140" y="32" width="36" height="66" rx="4" fill="#CBEAF7" />
-    <rect x="184" y="32" width="36" height="66" rx="4" fill="#CBEAF7" />
-    <circle cx="156" cy="52" r="8" fill="#FBDF54" opacity="0.85" />
-    <path d="M126 24 L234 24" stroke="#377EC0" strokeWidth="5" strokeLinecap="round" />
-
-    {/* Left: Lemari Pakaian */}
-    <g transform="translate(14, 48)">
-      <rect x="0" y="0" width="88" height="184" rx="10" fill="#FDF8EE" stroke="#D9B88F" strokeWidth="2.5" />
-      <rect x="8" y="14" width="72" height="96" rx="6" fill="#E8DFD1" />
-      <line x1="12" y1="24" x2="76" y2="24" stroke="#8C6D4F" strokeWidth="3" strokeLinecap="round" />
-      <path d="M18 25 L26 25 L32 34 L28 38 L26 35 L26 62 L18 62 L18 35 L16 38 L12 34 Z" fill="#377EC0" />
-      <path d="M39 25 L49 25 L56 35 L51 39 L49 36 L49 66 L39 66 L39 36 L37 39 L32 35 Z" fill="#FBDF54" />
-      <path d="M60 25 L68 25 L74 34 L70 38 L68 35 L68 60 L60 60 L60 35 L58 38 L54 34 Z" fill="#F04F52" />
-      <rect x="8" y="118" width="72" height="26" rx="4" fill="#F3E5D0" stroke="#D9B88F" strokeWidth="1.5" />
-      <circle cx="44" cy="131" r="3" fill="#B68A5A" />
-      <rect x="8" y="150" width="72" height="26" rx="4" fill="#F3E5D0" stroke="#D9B88F" strokeWidth="1.5" />
-      <circle cx="44" cy="163" r="3" fill="#B68A5A" />
-    </g>
-
-    {/* Right: Kaca / Cermin Berdiri */}
-    <g transform="translate(262, 56)">
-      <line x1="16" y1="162" x2="8" y2="188" stroke="#A67C52" strokeWidth="4.5" strokeLinecap="round" />
-      <line x1="68" y1="162" x2="76" y2="188" stroke="#A67C52" strokeWidth="4.5" strokeLinecap="round" />
-      <rect x="8" y="0" width="68" height="168" rx="34" fill="#C99663" stroke="#9C6B3B" strokeWidth="2.5" />
-      <rect x="15" y="7" width="54" height="154" rx="27" fill="#DDF3FA" />
-      <path d="M24 38 L58 14 L62 24 L24 52 Z" fill="#FFFFFF" opacity="0.7" />
-      <path d="M22 72 L62 42 L64 49 L22 80 Z" fill="#FFFFFF" opacity="0.45" />
-      <circle cx="42" cy="128" r="10" fill="#9FD2D6" opacity="0.45" />
+    {/* Wall Base + Subtle Wainscoting */}
+    <rect width="360" height="236" fill="url(#wallGrad)" />
+    <g opacity="0.45">
+      <rect x="0" y="168" width="360" height="68" fill="#F6FAFE" />
+      <line x1="0" y1="168" x2="360" y2="168" stroke="#C5DFEE" strokeWidth="2.5" />
+      <rect x="116" y="176" width="54" height="44" rx="4" fill="none" stroke="#D1E6F3" strokeWidth="1.5" />
+      <rect x="184" y="176" width="54" height="44" rx="4" fill="none" stroke="#D1E6F3" strokeWidth="1.5" />
     </g>
 
-    <g transform="translate(238, 198)">
-      <path d="M4 22 L20 22 L18 36 L6 36 Z" fill="#F7891F" />
-      <ellipse cx="12" cy="14" rx="7" ry="10" fill="#12BAAA" />
-      <ellipse cx="6" cy="17" rx="5" ry="7" fill="#2E9D67" />
-      <ellipse cx="18" cy="17" rx="5" ry="7" fill="#2E9D67" />
+    {/* Baseboard Molding & Shadow */}
+    <rect x="0" y="226" width="360" height="11" fill="#FFFFFF" />
+    <line x1="0" y1="226" x2="360" y2="226" stroke="#C7DCEB" strokeWidth="1.5" />
+    <rect x="0" y="237" width="360" height="4" fill="#9A7248" opacity="0.22" />
+
+    {/* Aesthetic Hardwood Floor with Plank Depth */}
+    <rect x="0" y="237" width="360" height="83" fill="url(#floorGrad)" />
+    <g stroke="#B88959" strokeWidth="1.1" opacity="0.55">
+      <line x1="0" y1="254" x2="360" y2="254" />
+      <line x1="0" y1="274" x2="360" y2="274" />
+      <line x1="0" y1="296" x2="360" y2="296" />
+      <line x1="64" y1="237" x2="48" y2="254" />
+      <line x1="196" y1="237" x2="192" y2="254" />
+      <line x1="294" y1="237" x2="306" y2="254" />
+      <line x1="118" y1="254" x2="108" y2="274" />
+      <line x1="252" y1="254" x2="262" y2="274" />
+      <line x1="76" y1="274" x2="62" y2="296" />
+      <line x1="226" y1="274" x2="236" y2="296" />
     </g>
 
-    <ellipse cx="180" cy="284" rx="76" ry="20" fill="#9FD2D6" stroke="#FFFFFF" strokeWidth="3" />
-    <ellipse cx="180" cy="284" rx="56" ry="13" fill="#E8F5FA" opacity="0.7" />
+    {/* Fairy String Lights Draped Along Ceiling */}
+    <path d="M8 10 Q90 36 180 12 Q270 36 352 10" fill="none" stroke="#94A3B8" strokeWidth="1.4" opacity="0.65" />
+    {[
+      [42, 20],
+      [94, 24],
+      [146, 18],
+      [212, 18],
+      [268, 24],
+      [318, 19],
+    ].map(([cx, cy], idx) => (
+      <g key={idx}>
+        <circle cx={cx} cy={cy} r="9" fill="url(#fairyGlow)" />
+        <circle cx={cx} cy={cy} r="2.8" fill="#FEF08A" stroke="#F59E0B" strokeWidth="0.6" />
+      </g>
+    ))}
+
+    {/* Arched Window + Sky + Curtains */}
+    <g transform="translate(128, 22)">
+      <path d="M6 94 L6 40 A46 40 0 0 1 98 40 L98 94 Z" fill="#FFFFFF" stroke="#B7D7EA" strokeWidth="2.5" />
+      <path d="M12 88 L12 41 A40 35 0 0 1 92 41 L92 88 Z" fill="url(#skyGrad)" />
+      {/* Fluffy Clouds & Warm Sun */}
+      <circle cx="72" cy="36" r="9" fill="#FEF08A" opacity="0.95" />
+      <ellipse cx="38" cy="48" rx="14" ry="7" fill="#FFFFFF" opacity="0.9" />
+      <ellipse cx="48" cy="46" rx="10" ry="6" fill="#FFFFFF" opacity="0.95" />
+      {/* Window Mullions */}
+      <line x1="52" y1="7" x2="52" y2="89" stroke="#FFFFFF" strokeWidth="3" />
+      <line x1="12" y1="54" x2="92" y2="54" stroke="#FFFFFF" strokeWidth="3" />
+      {/* Sheer Pastel Curtains */}
+      <path d="M0 10 Q18 45 8 96 L24 96 Q24 48 16 10 Z" fill="#FFFFFF" opacity="0.82" />
+      <path d="M104 10 Q86 45 96 96 L80 96 Q80 48 88 10 Z" fill="#FFFFFF" opacity="0.82" />
+      <rect x="-4" y="6" width="112" height="5" rx="2.5" fill="#C99663" />
+      <circle cx="-4" cy="8.5" r="3.5" fill="#B4814E" />
+      <circle cx="108" cy="8.5" r="3.5" fill="#B4814E" />
+    </g>
+
+    {/* Warm Volumetric Sunlight Beam */}
+    <polygon points="140,116 220,116 268,290 92,290" fill="url(#sunBeam)" />
+
+    {/* Floating Shelf & Wall Polaroids */}
+    <g transform="translate(118, 128)">
+      <rect x="0" y="16" width="66" height="5" rx="2" fill="#C99663" />
+      <rect x="0" y="21" width="66" height="2" fill="#9A6C3F" opacity="0.35" />
+      <rect x="8" y="2" width="10" height="14" rx="1.5" fill="#377EC0" />
+      <rect x="19" y="5" width="8" height="11" rx="1.5" fill="#FBDF54" />
+      <rect x="44" y="4" width="14" height="12" rx="2" fill="#FFFFFF" stroke="#9FD2D6" strokeWidth="1.2" />
+      <circle cx="51" cy="10" r="3" fill="#F04F52" opacity="0.7" />
+    </g>
+
+    {/* Left: Dimensional Wooden Wardrobe (Lemari Pakaian Estetik) */}
+    <g transform="translate(12, 46)">
+      {/* Side Shadow */}
+      <rect x="6" y="4" width="90" height="190" rx="10" fill="#7C5832" opacity="0.16" />
+      <rect x="0" y="0" width="90" height="190" rx="10" fill="url(#wardrobeBody)" stroke="#C69C6D" strokeWidth="2.4" />
+      {/* Crown Molding */}
+      <rect x="-3" y="-3" width="96" height="8" rx="4" fill="#D4AE81" stroke="#B68A5A" strokeWidth="1.5" />
+      {/* Closet Interior with Shadow */}
+      <rect x="8" y="14" width="74" height="100" rx="6" fill="#DED2C1" />
+      <rect x="8" y="14" width="74" height="10" rx="4" fill="#C7B69E" opacity="0.6" />
+      <line x1="12" y1="26" x2="78" y2="26" stroke="#7A5A3A" strokeWidth="3.2" strokeLinecap="round" />
+      {/* Hanging Clothes with Highlights */}
+      <path d="M17 27 L27 27 L34 37 L29 41 L27 37 L27 68 L17 68 L17 37 L15 41 L10 37 Z" fill="#377EC0" />
+      <path d="M39 27 L49 27 L56 38 L51 42 L49 38 L49 72 L39 72 L39 38 L37 42 L32 38 Z" fill="#FBDF54" />
+      <path d="M60 27 L70 27 L77 37 L72 41 L70 37 L70 65 L60 65 L60 37 L58 41 L53 37 Z" fill="#F04F52" />
+      {/* Beveled Drawers */}
+      <rect x="8" y="122" width="74" height="27" rx="5" fill="#F5E7D3" stroke="#C9A276" strokeWidth="1.5" />
+      <rect x="13" y="126" width="64" height="19" rx="3" fill="none" stroke="#E4C7A1" strokeWidth="1.2" />
+      <circle cx="45" cy="135.5" r="3.2" fill="#B4814E" />
+      <rect x="8" y="155" width="74" height="27" rx="5" fill="#F5E7D3" stroke="#C9A276" strokeWidth="1.5" />
+      <rect x="13" y="159" width="64" height="19" rx="3" fill="none" stroke="#E4C7A1" strokeWidth="1.2" />
+      <circle cx="45" cy="168.5" r="3.2" fill="#B4814E" />
+    </g>
+
+    {/* Right: Ornate Arched Standing Mirror (Kaca Berdiri Estetik) */}
+    <g transform="translate(260, 52)">
+      {/* Floor Shadow */}
+      <ellipse cx="42" cy="192" rx="34" ry="6" fill="#7C5832" opacity="0.2" />
+      <line x1="16" y1="162" x2="8" y2="190" stroke="#9C6B3B" strokeWidth="5" strokeLinecap="round" />
+      <line x1="68" y1="162" x2="76" y2="190" stroke="#9C6B3B" strokeWidth="5" strokeLinecap="round" />
+      <rect x="6" y="0" width="72" height="172" rx="36" fill="#C99663" stroke="#8C5D30" strokeWidth="2.5" />
+      <rect x="11" y="5" width="62" height="162" rx="31" fill="#E8C699" />
+      <rect x="14" y="8" width="56" height="156" rx="28" fill="url(#mirrorGlass)" />
+      {/* Glass Diagonal Reflections */}
+      <path d="M22 44 L62 16 L66 26 L22 58 Z" fill="#FFFFFF" opacity="0.72" />
+      <path d="M20 78 L64 46 L66 53 L20 86 Z" fill="#FFFFFF" opacity="0.45" />
+      <path d="M24 128 L58 104 L60 109 L24 134 Z" fill="#FFFFFF" opacity="0.32" />
+    </g>
+
+    {/* Potted Monstera Plant */}
+    <g transform="translate(232, 194)">
+      <ellipse cx="14" cy="40" rx="11" ry="3.5" fill="#7C5832" opacity="0.22" />
+      <path d="M5 22 L23 22 L20 40 L8 40 Z" fill="#F7891F" stroke="#C2640E" strokeWidth="1.2" />
+      <rect x="3" y="19" width="22" height="5" rx="2" fill="#FDBA74" />
+      <ellipse cx="14" cy="12" rx="7.5" ry="11" fill="#12BAAA" />
+      <ellipse cx="6" cy="16" rx="5.5" ry="8" transform="rotate(-18 6 16)" fill="#0D9488" />
+      <ellipse cx="22" cy="16" rx="5.5" ry="8" transform="rotate(18 22 16)" fill="#2DD4BF" />
+    </g>
+
+    {/* Plush Woven Circular Rug with Subtle Shadow */}
+    <ellipse cx="180" cy="288" rx="84" ry="22" fill="#7C5832" opacity="0.16" />
+    <ellipse cx="180" cy="284" rx="80" ry="20" fill="#9FD2D6" stroke="#FFFFFF" strokeWidth="3.5" />
+    <ellipse cx="180" cy="284" rx="64" ry="15" fill="#E8F5FA" opacity="0.85" />
+    <ellipse cx="180" cy="284" rx="44" ry="9" fill="none" stroke="#377EC0" strokeWidth="1" strokeDasharray="3 3" opacity="0.4" />
   </svg>
 );
 
@@ -166,11 +269,9 @@ const GenderIcon: React.FC<{ gender: AvatarConfig['gender']; active: boolean }> 
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({
   avatar,
-  streak,
   currentUser,
   onChangeAvatar,
   onSetAsIcon,
-  onToggleFreeze,
   onBackHome,
   onOpenAuth,
 }) => {
@@ -316,6 +417,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
   // Trigger Wardrobe Closing Animation when saving Avatar
   const handleSaveAvatarWithDoors = () => {
+    if (!currentUser) {
+      onOpenAuth();
+      return;
+    }
     if (isSavingDoors) return;
     setIsSavingDoors(true);
     triggerReaction('Yay! Tampilanku tersimpan!');
@@ -557,7 +662,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 Halaman Profil & Studio Karakter
               </p>
               <h1 className="font-pixel text-2xl sm:text-3xl text-slate-900">
-                {currentUser ? currentUser.name : 'Profil Panitia & Peserta'}
+                {currentUser ? currentUser.name : 'Profil Kosong (Belum Masuk)'}
               </h1>
             </div>
           </div>
@@ -582,7 +687,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 className="min-h-[44px] px-4 py-2 rounded-2xl bg-[#377EC0] hover:bg-[#5460AC] text-white text-xs font-extrabold inline-flex items-center gap-2 cursor-pointer"
               >
                 <LogIn className="w-4 h-4" />
-                Masuk / Daftar Akun
+                Sign In / Sign Up
               </button>
             )}
           </div>
@@ -590,7 +695,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
         {/* Main 2-Column Studio Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* LEFT: Cozy Bedroom Wardrobe + Animated Doors + Speech Bubble + Streak */}
+          {/* LEFT: Cozy Aesthetic Bedroom Wardrobe + Animated Doors + Speech Bubble */}
           <div className="lg:col-span-5 space-y-6">
             <div className="bg-white rounded-[32px] p-6 shadow-xl shadow-[#377EC0]/10 border border-[#9FD2D6]/60 space-y-4">
               <div className="flex items-center justify-between gap-2">
@@ -625,10 +730,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 {!doorsClosed && (
                   <div
                     key={bubbleKey}
-                    className="bubble-pop relative z-20 mt-4 mb-1 px-4 py-2 rounded-2xl bg-white/95 border-2 border-[#377EC0]/40 shadow-md max-w-[230px] text-center"
+                    className="bubble-pop relative z-20 mt-4 mb-1 px-4 py-2 rounded-2xl bg-white/95 border-2 border-[#377EC0]/40 shadow-md max-w-[235px] text-center"
                   >
                     <p className="text-xs font-extrabold text-[#1E3A8A] leading-snug">
-                      {bubbleText}
+                      {currentUser
+                        ? bubbleText
+                        : 'Profil masih kosong — Yuk Sign In / Sign Up dulu!'}
                     </p>
                     <span
                       className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white border-r-2 border-b-2 border-[#377EC0]/40 rotate-45"
@@ -637,7 +744,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   </div>
                 )}
 
-                {/* Lively Swaying & Expressive Chibi Avatar */}
+                {/* Lively Swaying & Expressive Chibi Avatar (Bald & Faceless when NOT signed in) */}
                 <div className="relative z-10 pb-3 pt-1 flex items-center justify-center">
                   <ChibiAvatar
                     ref={svgRef}
@@ -645,13 +752,14 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                     mode={previewMode}
                     softShadow
                     animateIdle={!doorsClosed}
-                    isExpressing={isExpressing}
+                    isExpressing={currentUser ? isExpressing : false}
+                    emptyProfile={!currentUser}
                     className={
                       previewMode === 'head'
                         ? 'w-44 h-44 transition-all duration-300'
                         : 'w-48 h-60 transition-all duration-300'
                     }
-                    title="Avatar Kustom EVORA"
+                    title={currentUser ? 'Avatar Kustom EVORA' : 'Profil Kosong EVORA'}
                   />
                 </div>
 
@@ -752,6 +860,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 <button
                   type="button"
                   onClick={() => {
+                    if (!currentUser) {
+                      onOpenAuth();
+                      return;
+                    }
                     onChangeAvatar(composedAvatar);
                     onSetAsIcon();
                     triggerReaction('Icon profil langsung diperbarui!');
@@ -762,68 +874,45 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   Pasang ke Icon Header
                 </button>
               </div>
-            </div>
-
-            {/* Streak Flame Status Card inside Profile Page */}
-            <div className="bg-white rounded-[32px] p-6 shadow-xl shadow-[#377EC0]/10 border border-[#9FD2D6]/60 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="font-pixel text-xl text-slate-900">Status Api Streak</h2>
-                <span
-                  className={`px-3 py-1 rounded-xl text-xs font-extrabold inline-flex items-center gap-1.5 transition-all duration-500 ${
-                    streak.isFrozen
-                      ? 'bg-[#E8F5FA] text-[#377EC0] border border-[#377EC0]/40'
-                      : 'bg-[#FFF4E5] text-[#F7891F] border border-[#FBDF54]'
-                  }`}
-                >
-                  {streak.isFrozen ? (
-                    <>
-                      <Snowflake className="w-3.5 h-3.5" /> Kondisi: Api Beku
-                    </>
-                  ) : (
-                    <>
-                      <Flame className="w-3.5 h-3.5" /> Kondisi: Masih Menyala
-                    </>
-                  )}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-4 p-4 rounded-2xl bg-[#F4FAFC] border border-[#9FD2D6]/60">
-                <StreakFlameBadge isFrozen={streak.isFrozen} days={streak.currentDays} size="lg" />
-                <div className="space-y-1.5 min-w-0">
-                  <p className="font-pixel text-lg text-slate-900">
-                    {streak.isFrozen ? 'Api Streak Sedang Beku' : 'Api Streak Masih Menyala!'}
-                  </p>
-                  <p className="text-xs font-bold text-slate-600 leading-relaxed">
-                    {streak.isFrozen
-                      ? 'Streak panitia aman terlindungi es. Nyalakan kembali atau ikut panitia event.'
-                      : `Menyala ${streak.currentDays} hari beruntun · ${streak.monthlyEventsHosted} event panitia bulan ini.`}
+              {!currentUser && (
+                <div className="rounded-2xl bg-[#E8F5FA] border border-[#9FD2D6] p-3.5 text-center space-y-2">
+                  <p className="text-xs font-bold text-slate-700">
+                    Karena kamu belum Sign In / Sign Up, avatar profil masih kosong (botak tanpa wajah).
                   </p>
                   <button
                     type="button"
-                    onClick={onToggleFreeze}
-                    className={`mt-1 px-3.5 py-2 rounded-xl text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer transition-colors ${
-                      streak.isFrozen
-                        ? 'bg-[#F7891F] hover:bg-[#F04F52] text-white'
-                        : 'bg-[#377EC0] hover:bg-[#5460AC] text-white'
-                    }`}
+                    onClick={onOpenAuth}
+                    className="px-4 py-2 rounded-xl bg-[#377EC0] hover:bg-[#5460AC] text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
                   >
-                    {streak.isFrozen ? (
-                      <>
-                        <Flame className="w-3.5 h-3.5" /> Nyalakan Api Kembali
-                      </>
-                    ) : (
-                      <>
-                        <Snowflake className="w-3.5 h-3.5" /> Lihat Mode Api Beku
-                      </>
-                    )}
+                    <LogIn className="w-3.5 h-3.5" />
+                    Sign In / Sign Up Sekarang
                   </button>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
-          {/* RIGHT: Panel 'Kustomisasi Mendalam' */}
+          {/* RIGHT: Panel 'Kustomisasi Mendalam' (or Locked Notice if not signed in) */}
           <div className="lg:col-span-7 bg-white rounded-[32px] p-6 sm:p-8 shadow-xl shadow-[#377EC0]/10 border border-[#9FD2D6]/60 space-y-6">
+            {!currentUser && (
+              <div className="rounded-2xl bg-[#FFF4E5] border border-[#FBDF54] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-extrabold text-[#B45309]">
+                    Profil Belum Aktif
+                  </p>
+                  <p className="text-xs font-bold text-slate-600">
+                    Sign In atau Sign Up akun terlebih dahulu untuk membuka dan menyimpan kustomisasi avatarmu.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={onOpenAuth}
+                  className="px-4 py-2.5 rounded-xl bg-[#377EC0] hover:bg-[#5460AC] text-white text-xs font-extrabold shrink-0 cursor-pointer"
+                >
+                  Masuk / Daftar
+                </button>
+              </div>
+            )}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#377EC0]">
