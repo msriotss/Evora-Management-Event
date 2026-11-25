@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
   Download,
@@ -10,6 +10,8 @@ import {
   Snowflake,
   UserCheck,
   LogIn,
+  Save,
+  DoorOpen,
 } from 'lucide-react';
 import { AvatarConfig, StreakState, UserAccount } from '../types/evora';
 import { AVATAR_PALETTES, INITIAL_AVATAR } from '../data/initialData';
@@ -27,15 +29,40 @@ interface ProfilePageProps {
   onOpenAuth: () => void;
 }
 
-type CustomizerTab = 'wajah' | 'rambut' | 'ekspresi' | 'makeup' | 'outfit';
+type DeepCategory =
+  | 'bentuk-wajah'
+  | 'alis'
+  | 'warna-kulit'
+  | 'mata'
+  | 'hidung'
+  | 'mulut'
+  | 'rambut'
+  | 'aksesoris'
+  | 'outfit';
 
-const TABS: { id: CustomizerTab; label: string }[] = [
-  { id: 'wajah', label: 'Wajah & Kulit' },
-  { id: 'rambut', label: 'Rambut & Alis' },
-  { id: 'ekspresi', label: 'Mata, Hidung & Mulut' },
-  { id: 'makeup', label: 'Make Up & Aksesoris' },
-  { id: 'outfit', label: 'Baju, Jaket & Sepatu' },
+const DEEP_CATEGORIES: { id: DeepCategory; label: string }[] = [
+  { id: 'bentuk-wajah', label: 'Bentuk Wajah' },
+  { id: 'alis', label: 'Alis' },
+  { id: 'warna-kulit', label: 'Warna Kulit' },
+  { id: 'mata', label: 'Mata' },
+  { id: 'hidung', label: 'Hidung' },
+  { id: 'mulut', label: 'Mulut' },
+  { id: 'rambut', label: 'Rambut' },
+  { id: 'aksesoris', label: 'Aksesoris' },
+  { id: 'outfit', label: 'Baju & Sepatu' },
 ];
+
+const CATEGORY_BUBBLES: Record<DeepCategory, string[]> = {
+  'bentuk-wajah': ['Bentuk wajahku makin imut!', 'Cocok banget kan siluetnya?'],
+  alis: ['Alisku makin ekspresif!', 'Ekspresi alisku oke nggak?'],
+  'warna-kulit': ['Tampil makin fresh nih!', 'Rona pipinya lucu banget~'],
+  mata: ['Mataku makin berbinar!', 'Tatapan siap bertugas!'],
+  hidung: ['Hidung mungil ikonik~', 'Hehe, imut kan?'],
+  mulut: ['Senyum baruku siap menyapa!', 'Ekspresi baru nih!'],
+  rambut: ['Gaya rambut baruku kece!', 'Wah, rambutnya cocok banget!'],
+  aksesoris: ['Aksesoris ini pas banget!', 'Makin stand out di event!'],
+  outfit: ['Outfit panitia paling kece!', 'Siap turun ke lapangan!'],
+};
 
 const BedroomMirrorBackdrop: React.FC = () => (
   <svg
@@ -43,9 +70,7 @@ const BedroomMirrorBackdrop: React.FC = () => (
     className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
     aria-hidden="true"
   >
-    {/* Pastel Sky Bedroom Wall */}
     <rect width="360" height="238" fill="#E9F5FB" />
-    {/* Soft Wall Stripes */}
     <g opacity="0.35" fill="#FFFFFF">
       <rect x="0" y="0" width="24" height="238" />
       <rect x="48" y="0" width="24" height="238" />
@@ -56,11 +81,7 @@ const BedroomMirrorBackdrop: React.FC = () => (
       <rect x="288" y="0" width="24" height="238" />
       <rect x="336" y="0" width="24" height="238" />
     </g>
-
-    {/* Baseboard */}
     <rect x="0" y="228" width="360" height="10" fill="#FFFFFF" />
-
-    {/* Warm Wooden Floor */}
     <rect x="0" y="238" width="360" height="82" fill="#F2D7B6" />
     <g stroke="#E2B98B" strokeWidth="1.5">
       <line x1="0" y1="258" x2="360" y2="258" />
@@ -68,47 +89,37 @@ const BedroomMirrorBackdrop: React.FC = () => (
       <line x1="0" y1="302" x2="360" y2="302" />
     </g>
 
-    {/* Window Center-Back */}
     <rect x="132" y="24" width="96" height="82" rx="12" fill="#FFFFFF" stroke="#9FD2D6" strokeWidth="3" />
     <rect x="140" y="32" width="36" height="66" rx="4" fill="#CBEAF7" />
     <rect x="184" y="32" width="36" height="66" rx="4" fill="#CBEAF7" />
     <circle cx="156" cy="52" r="8" fill="#FBDF54" opacity="0.85" />
     <path d="M126 24 L234 24" stroke="#377EC0" strokeWidth="5" strokeLinecap="round" />
 
-    {/* Left: Cute Wardrobe / Lemari Pakaian */}
+    {/* Left: Lemari Pakaian */}
     <g transform="translate(14, 48)">
-      {/* Lemari Body */}
       <rect x="0" y="0" width="88" height="184" rx="10" fill="#FDF8EE" stroke="#D9B88F" strokeWidth="2.5" />
-      {/* Open Closet Hanging Rack */}
       <rect x="8" y="14" width="72" height="96" rx="6" fill="#E8DFD1" />
       <line x1="12" y1="24" x2="76" y2="24" stroke="#8C6D4F" strokeWidth="3" strokeLinecap="round" />
-      {/* Hanging Shirts in Lemari */}
       <path d="M18 25 L26 25 L32 34 L28 38 L26 35 L26 62 L18 62 L18 35 L16 38 L12 34 Z" fill="#377EC0" />
       <path d="M39 25 L49 25 L56 35 L51 39 L49 36 L49 66 L39 66 L39 36 L37 39 L32 35 Z" fill="#FBDF54" />
       <path d="M60 25 L68 25 L74 34 L70 38 L68 35 L68 60 L60 60 L60 35 L58 38 L54 34 Z" fill="#F04F52" />
-      {/* Drawers below */}
       <rect x="8" y="118" width="72" height="26" rx="4" fill="#F3E5D0" stroke="#D9B88F" strokeWidth="1.5" />
       <circle cx="44" cy="131" r="3" fill="#B68A5A" />
       <rect x="8" y="150" width="72" height="26" rx="4" fill="#F3E5D0" stroke="#D9B88F" strokeWidth="1.5" />
       <circle cx="44" cy="163" r="3" fill="#B68A5A" />
     </g>
 
-    {/* Right: Standing Full-Length Mirror / Kaca Kamar */}
+    {/* Right: Kaca / Cermin Berdiri */}
     <g transform="translate(262, 56)">
-      {/* Mirror Stand Legs */}
       <line x1="16" y1="162" x2="8" y2="188" stroke="#A67C52" strokeWidth="4.5" strokeLinecap="round" />
       <line x1="68" y1="162" x2="76" y2="188" stroke="#A67C52" strokeWidth="4.5" strokeLinecap="round" />
-      {/* Mirror Wooden Frame */}
       <rect x="8" y="0" width="68" height="168" rx="34" fill="#C99663" stroke="#9C6B3B" strokeWidth="2.5" />
-      {/* Glass Surface */}
       <rect x="15" y="7" width="54" height="154" rx="27" fill="#DDF3FA" />
-      {/* Mirror Reflection Sheen */}
       <path d="M24 38 L58 14 L62 24 L24 52 Z" fill="#FFFFFF" opacity="0.7" />
       <path d="M22 72 L62 42 L64 49 L22 80 Z" fill="#FFFFFF" opacity="0.45" />
       <circle cx="42" cy="128" r="10" fill="#9FD2D6" opacity="0.45" />
     </g>
 
-    {/* Cute Potted Plant */}
     <g transform="translate(238, 198)">
       <path d="M4 22 L20 22 L18 36 L6 36 Z" fill="#F7891F" />
       <ellipse cx="12" cy="14" rx="7" ry="10" fill="#12BAAA" />
@@ -116,7 +127,6 @@ const BedroomMirrorBackdrop: React.FC = () => (
       <ellipse cx="18" cy="17" rx="5" ry="7" fill="#2E9D67" />
     </g>
 
-    {/* Soft Pastel Rug Under Avatar */}
     <ellipse cx="180" cy="284" rx="76" ry="20" fill="#9FD2D6" stroke="#FFFFFF" strokeWidth="3" />
     <ellipse cx="180" cy="284" rx="56" ry="13" fill="#E8F5FA" opacity="0.7" />
   </svg>
@@ -164,19 +174,177 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   onBackHome,
   onOpenAuth,
 }) => {
-  const [activeTab, setActiveTab] = useState<CustomizerTab>('wajah');
+  const [selectedCategory, setSelectedCategory] = useState<DeepCategory>('bentuk-wajah');
   const [previewMode, setPreviewMode] = useState<'full' | 'head'>('full');
+
+  // Separate state for each element in 'Kustomisasi Mendalam'
+  const [gender, setGender] = useState<AvatarConfig['gender']>(avatar.gender);
+  const [faceShape, setFaceShape] = useState<AvatarConfig['faceShape']>(avatar.faceShape);
+  const [eyebrowStyle, setEyebrowStyle] = useState<AvatarConfig['eyebrowStyle']>(avatar.eyebrowStyle);
+  const [eyebrowColor, setEyebrowColor] = useState<string>(avatar.eyebrowColor);
+  const [skinColor, setSkinColor] = useState<string>(avatar.skinColor);
+  const [makeupStyle, setMakeupStyle] = useState<AvatarConfig['makeupStyle']>(avatar.makeupStyle);
+  const [eyeStyle, setEyeStyle] = useState<AvatarConfig['eyeStyle']>(avatar.eyeStyle);
+  const [eyeColor, setEyeColor] = useState<string>(avatar.eyeColor);
+  const [noseStyle, setNoseStyle] = useState<AvatarConfig['noseStyle']>(avatar.noseStyle);
+  const [mouthStyle, setMouthStyle] = useState<AvatarConfig['mouthStyle']>(avatar.mouthStyle);
+  const [hairStyle, setHairStyle] = useState<AvatarConfig['hairStyle']>(avatar.hairStyle);
+  const [hairColor, setHairColor] = useState<string>(avatar.hairColor);
+  const [accessory, setAccessory] = useState<AvatarConfig['accessory']>(avatar.accessory);
+  const [shirtStyle, setShirtStyle] = useState<AvatarConfig['shirtStyle']>(avatar.shirtStyle);
+  const [shirtColor, setShirtColor] = useState<string>(avatar.shirtColor);
+  const [jacketStyle, setJacketStyle] = useState<AvatarConfig['jacketStyle']>(avatar.jacketStyle);
+  const [jacketColor, setJacketColor] = useState<string>(avatar.jacketColor);
+  const [shoeStyle, setShoeStyle] = useState<AvatarConfig['shoeStyle']>(avatar.shoeStyle);
+  const [shoeColor, setShoeColor] = useState<string>(avatar.shoeColor);
+
+  // Wardrobe door animation & expressive bubble states
+  const [doorsClosed, setDoorsClosed] = useState<boolean>(true);
+  const [doorStatusText, setDoorStatusText] = useState<string>('Membuka Lemari...');
+  const [isSavingDoors, setIsSavingDoors] = useState<boolean>(false);
+  const [isExpressing, setIsExpressing] = useState<boolean>(false);
+  const [bubbleText, setBubbleText] = useState<string>('Hai! Ayo ganti gaya di kamar~');
+  const [bubbleKey, setBubbleKey] = useState<number>(1);
   const [iconSavedFlash, setIconSavedFlash] = useState(false);
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const expressTimeoutRef = useRef<number | null>(null);
 
-  const updateField = <K extends keyof AvatarConfig>(key: K, value: AvatarConfig[K]) => {
-    onChangeAvatar({ ...avatar, [key]: value });
+  const composedAvatar: AvatarConfig = useMemo(
+    () => ({
+      gender,
+      faceShape,
+      eyebrowStyle,
+      eyebrowColor,
+      skinColor,
+      makeupStyle,
+      eyeStyle,
+      eyeColor,
+      noseStyle,
+      mouthStyle,
+      hairStyle,
+      hairColor,
+      accessory,
+      shirtStyle,
+      shirtColor,
+      jacketStyle,
+      jacketColor,
+      shoeStyle,
+      shoeColor,
+    }),
+    [
+      gender,
+      faceShape,
+      eyebrowStyle,
+      eyebrowColor,
+      skinColor,
+      makeupStyle,
+      eyeStyle,
+      eyeColor,
+      noseStyle,
+      mouthStyle,
+      hairStyle,
+      hairColor,
+      accessory,
+      shirtStyle,
+      shirtColor,
+      jacketStyle,
+      jacketColor,
+      shoeStyle,
+      shoeColor,
+    ]
+  );
+
+  // Play wardrobe entrance door-opening animation on mount
+  useEffect(() => {
+    const t1 = window.setTimeout(() => {
+      setDoorsClosed(false);
+      triggerReaction('Selamat datang di kamar ganti!');
+    }, 180);
+    return () => {
+      window.clearTimeout(t1);
+      if (expressTimeoutRef.current) window.clearTimeout(expressTimeoutRef.current);
+    };
+  }, []);
+
+  const triggerReaction = (message: string) => {
+    setBubbleText(message);
+    setBubbleKey((k) => k + 1);
+    setIsExpressing(true);
+    if (expressTimeoutRef.current) window.clearTimeout(expressTimeoutRef.current);
+    expressTimeoutRef.current = window.setTimeout(() => {
+      setIsExpressing(false);
+    }, 900);
+  };
+
+  const applyAllElements = (cfg: AvatarConfig) => {
+    setGender(cfg.gender);
+    setFaceShape(cfg.faceShape);
+    setEyebrowStyle(cfg.eyebrowStyle);
+    setEyebrowColor(cfg.eyebrowColor);
+    setSkinColor(cfg.skinColor);
+    setMakeupStyle(cfg.makeupStyle);
+    setEyeStyle(cfg.eyeStyle);
+    setEyeColor(cfg.eyeColor);
+    setNoseStyle(cfg.noseStyle);
+    setMouthStyle(cfg.mouthStyle);
+    setHairStyle(cfg.hairStyle);
+    setHairColor(cfg.hairColor);
+    setAccessory(cfg.accessory);
+    setShirtStyle(cfg.shirtStyle);
+    setShirtColor(cfg.shirtColor);
+    setJacketStyle(cfg.jacketStyle);
+    setJacketColor(cfg.jacketColor);
+    setShoeStyle(cfg.shoeStyle);
+    setShoeColor(cfg.shoeColor);
+  };
+
+  const reactCategory = (cat: DeepCategory) => {
+    const lines = CATEGORY_BUBBLES[cat];
+    const line = lines[Math.floor(Math.random() * lines.length)];
+    triggerReaction(line);
+  };
+
+  // Trigger Wardrobe Entrance Animation when user clicks "Ganti Avatar"
+  const handleEnterWardrobeChange = () => {
+    setDoorStatusText('Membuka Pintu Lemari...');
+    setDoorsClosed(true);
+    window.setTimeout(() => {
+      setDoorsClosed(false);
+      triggerReaction('Pintu terbuka! Pilih gaya barumu~');
+    }, 520);
+  };
+
+  // Trigger Wardrobe Closing Animation when saving Avatar
+  const handleSaveAvatarWithDoors = () => {
+    if (isSavingDoors) return;
+    setIsSavingDoors(true);
+    triggerReaction('Yay! Tampilanku tersimpan!');
+    setDoorStatusText('Menyimpan ke Lemari...');
+
+    window.setTimeout(() => {
+      setDoorsClosed(true);
+    }, 220);
+
+    window.setTimeout(() => {
+      onChangeAvatar(composedAvatar);
+      onSetAsIcon();
+      setDoorStatusText('Avatar Tersimpan!');
+      setIconSavedFlash(true);
+    }, 820);
+
+    window.setTimeout(() => {
+      setDoorsClosed(false);
+      setIsSavingDoors(false);
+      triggerReaction('Siap bertugas dengan gaya baru!');
+    }, 1550);
+
+    window.setTimeout(() => setIconSavedFlash(false), 2600);
   };
 
   const handleRandomize = () => {
     const pick = <T,>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)];
-    const hairColor = pick(AVATAR_PALETTES.hair).hex;
-    onChangeAvatar({
+    const nextHairColor = pick(AVATAR_PALETTES.hair).hex;
+    const randomized: AvatarConfig = {
       gender: pick(['cowok', 'cewek', 'netral'] as const),
       skinColor: pick(AVATAR_PALETTES.skin).hex,
       faceShape: pick(['round', 'oval', 'square', 'heart'] as const),
@@ -192,7 +360,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
         'wavy-long',
         'twintails-low',
       ] as const),
-      hairColor,
+      hairColor: nextHairColor,
       eyeStyle: pick([
         'sparkle',
         'big',
@@ -206,7 +374,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       ] as const),
       eyeColor: pick(AVATAR_PALETTES.eyes).hex,
       eyebrowStyle: pick(['soft', 'thick', 'raised', 'flat'] as const),
-      eyebrowColor: hairColor,
+      eyebrowColor: nextHairColor,
       noseStyle: pick(['triangle', 'button', 'tiny'] as const),
       mouthStyle: pick(['smile', 'grin', 'surprised', 'cat', 'cool', 'cheer', 'pout', 'tongue'] as const),
       makeupStyle: pick(['none', 'blush-pink', 'blush-peach', 'freckles', 'pastel-shadow'] as const),
@@ -228,13 +396,14 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
         'star-clip',
         'sunglasses',
       ] as const),
-    });
+    };
+    applyAllElements(randomized);
+    triggerReaction('Wah! Gaya kejutan baru!');
   };
 
-  const handleApplyIcon = () => {
-    onSetAsIcon();
-    setIconSavedFlash(true);
-    setTimeout(() => setIconSavedFlash(false), 1800);
+  const handleResetDefault = () => {
+    applyAllElements(INITIAL_AVATAR);
+    triggerReaction('Kembali ke gaya awal EVORA!');
   };
 
   const handleDownloadIconPng = () => {
@@ -269,6 +438,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       link.download = `evora-avatar-icon-${previewMode}.png`;
       link.href = pngUrl;
       link.click();
+      triggerReaction('Icon PNG sudah diunduh!');
     };
     img.src = url;
   };
@@ -320,10 +490,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     </div>
   );
 
-  // Visual Option Grid — shows live ChibiAvatar mini-preview of each option!
   const renderVisualChoiceGrid = <K extends keyof AvatarConfig>(
     label: string,
     fieldKey: K,
+    currentVal: AvatarConfig[K],
+    onSelect: (val: AvatarConfig[K]) => void,
     previewPart: 'head' | 'torso' | 'shoes' | 'full',
     options: { value: AvatarConfig[K]; label: string }[]
   ) => (
@@ -331,14 +502,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       <span className="text-xs font-extrabold text-slate-700 block">{label}</span>
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5">
         {options.map((opt) => {
-          const active = avatar[fieldKey] === opt.value;
-          const previewCfg: AvatarConfig = { ...avatar, [fieldKey]: opt.value };
-          // For jacket preview when jacketStyle === 'none', still render torso cleanly
+          const active = currentVal === opt.value;
+          const previewCfg: AvatarConfig = { ...composedAvatar, [fieldKey]: opt.value };
           return (
             <button
               key={String(opt.value)}
               type="button"
-              onClick={() => updateField(fieldKey, opt.value)}
+              onClick={() => onSelect(opt.value)}
               className={`relative p-2 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center justify-between gap-1 min-h-[92px] ${
                 active
                   ? 'bg-[#E6F7F6] border-[#12BAAA] shadow-md ring-2 ring-[#9FD2D6]/60 scale-[1.02]'
@@ -355,13 +525,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   config={previewCfg}
                   mode={previewPart}
                   softShadow={false}
-                  className={
-                    previewPart === 'head'
-                      ? 'w-14 h-14'
-                      : previewPart === 'shoes'
-                      ? 'w-14 h-10'
-                      : 'w-14 h-14'
-                  }
+                  className={previewPart === 'shoes' ? 'w-14 h-10' : 'w-14 h-14'}
                 />
               </div>
               <span className="text-[10px] font-extrabold text-slate-800 leading-tight text-center line-clamp-1">
@@ -426,9 +590,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
         {/* Main 2-Column Studio Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* LEFT: Cozy Bedroom Wardrobe + Mirror Preview + Streak Status */}
+          {/* LEFT: Cozy Bedroom Wardrobe + Animated Doors + Speech Bubble + Streak */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="bg-white rounded-[32px] p-6 shadow-xl shadow-[#377EC0]/10 border border-[#9FD2D6]/60 space-y-5">
+            <div className="bg-white rounded-[32px] p-6 shadow-xl shadow-[#377EC0]/10 border border-[#9FD2D6]/60 space-y-4">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-pixel text-lg text-slate-900">Kamar Ganti EVORA</span>
                 <div className="flex rounded-xl bg-[#E8F5FA] p-1">
@@ -453,15 +617,35 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 </div>
               </div>
 
-              {/* Cozy Bedroom Backdrop with Wardrobe (Lemari) & Standing Mirror (Kaca) */}
-              <div className="relative rounded-[28px] border-2 border-[#9FD2D6]/70 flex flex-col items-center justify-end min-h-[320px] overflow-hidden shadow-inner">
+              {/* Cozy Bedroom Backdrop + Animated Double Wardrobe Doors + Expressive Bubble */}
+              <div className="relative rounded-[28px] border-2 border-[#9FD2D6]/70 flex flex-col items-center justify-end min-h-[340px] overflow-hidden shadow-inner">
                 <BedroomMirrorBackdrop />
-                <div className="relative z-10 pb-3 pt-10 flex items-center justify-center">
+
+                {/* Speech Bubble Above Avatar */}
+                {!doorsClosed && (
+                  <div
+                    key={bubbleKey}
+                    className="bubble-pop relative z-20 mt-4 mb-1 px-4 py-2 rounded-2xl bg-white/95 border-2 border-[#377EC0]/40 shadow-md max-w-[230px] text-center"
+                  >
+                    <p className="text-xs font-extrabold text-[#1E3A8A] leading-snug">
+                      {bubbleText}
+                    </p>
+                    <span
+                      className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white border-r-2 border-b-2 border-[#377EC0]/40 rotate-45"
+                      aria-hidden="true"
+                    />
+                  </div>
+                )}
+
+                {/* Lively Swaying & Expressive Chibi Avatar */}
+                <div className="relative z-10 pb-3 pt-1 flex items-center justify-center">
                   <ChibiAvatar
                     ref={svgRef}
-                    config={avatar}
+                    config={composedAvatar}
                     mode={previewMode}
                     softShadow
+                    animateIdle={!doorsClosed}
+                    isExpressing={isExpressing}
                     className={
                       previewMode === 'head'
                         ? 'w-44 h-44 transition-all duration-300'
@@ -470,10 +654,74 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                     title="Avatar Kustom EVORA"
                   />
                 </div>
+
+                {/* Animated Twin Wardrobe Doors Overlay (Open on Enter, Close on Save) */}
+                <div
+                  className={`absolute inset-0 z-30 flex pointer-events-none transition-opacity duration-300 ${
+                    doorsClosed ? 'opacity-100' : 'opacity-100'
+                  }`}
+                  aria-hidden={!doorsClosed}
+                >
+                  {/* Left Wardrobe Door */}
+                  <div
+                    className={`w-1/2 h-full bg-gradient-to-r from-[#E6C59C] to-[#F3D9B6] border-r-2 border-[#B68A5A] p-3 flex flex-col justify-between transition-transform duration-700 ease-in-out shadow-xl ${
+                      doorsClosed ? 'translate-x-0' : '-translate-x-full'
+                    }`}
+                  >
+                    <div className="flex-1 rounded-2xl border-2 border-[#C99F6D] bg-[#F7E5CA]/60 grid grid-rows-3 gap-2 p-2">
+                      <div className="rounded-lg border border-[#D4AF82] bg-[#EBD0AC]/50" />
+                      <div className="rounded-lg border border-[#D4AF82] bg-[#EBD0AC]/50" />
+                      <div className="rounded-lg border border-[#D4AF82] bg-[#EBD0AC]/50" />
+                    </div>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-10 rounded-full bg-[#FBDF54] border border-[#B45309] shadow-sm" />
+                  </div>
+
+                  {/* Right Wardrobe Door */}
+                  <div
+                    className={`w-1/2 h-full bg-gradient-to-l from-[#E6C59C] to-[#F3D9B6] border-l-2 border-[#B68A5A] p-3 flex flex-col justify-between transition-transform duration-700 ease-in-out shadow-xl ${
+                      doorsClosed ? 'translate-x-0' : 'translate-x-full'
+                    }`}
+                  >
+                    <div className="flex-1 rounded-2xl border-2 border-[#C99F6D] bg-[#F7E5CA]/60 grid grid-rows-3 gap-2 p-2">
+                      <div className="rounded-lg border border-[#D4AF82] bg-[#EBD0AC]/50" />
+                      <div className="rounded-lg border border-[#D4AF82] bg-[#EBD0AC]/50" />
+                      <div className="rounded-lg border border-[#D4AF82] bg-[#EBD0AC]/50" />
+                    </div>
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-10 rounded-full bg-[#FBDF54] border border-[#B45309] shadow-sm" />
+                  </div>
+
+                  {/* Center Wardrobe Badge when Doors are Closed */}
+                  {doorsClosed && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="px-5 py-2.5 rounded-2xl bg-white/95 border-2 border-[#377EC0] shadow-lg text-center">
+                        <p className="font-pixel text-base text-[#377EC0]">
+                          {doorStatusText}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Actions */}
+              {/* Primary Save & Wardrobe Actions */}
               <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleEnterWardrobeChange}
+                  className="min-h-[44px] px-3 py-2.5 rounded-2xl bg-[#E8F5FA] hover:bg-[#9FD2D6]/50 text-[#377EC0] border border-[#9FD2D6] text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <DoorOpen className="w-4 h-4" />
+                  Ganti Avatar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveAvatarWithDoors}
+                  disabled={isSavingDoors}
+                  className="min-h-[44px] px-3 py-2.5 rounded-2xl bg-[#12BAAA] hover:bg-[#0E9F91] text-white text-xs font-extrabold inline-flex items-center justify-center gap-1.5 shadow-md shadow-[#12BAAA]/25 cursor-pointer disabled:opacity-70"
+                >
+                  {iconSavedFlash ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+                  {iconSavedFlash ? 'Tersimpan!' : 'Simpan Avatar'}
+                </button>
                 <button
                   type="button"
                   onClick={handleRandomize}
@@ -484,27 +732,34 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => onChangeAvatar(INITIAL_AVATAR)}
-                  className="min-h-[44px] px-3 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  Reset Default
-                </button>
-                <button
-                  type="button"
-                  onClick={handleApplyIcon}
-                  className="min-h-[44px] px-3 py-2.5 rounded-2xl bg-[#12BAAA] hover:bg-[#0E9F91] text-white text-xs font-extrabold inline-flex items-center justify-center gap-1.5 shadow-md shadow-[#12BAAA]/20 cursor-pointer"
-                >
-                  {iconSavedFlash ? <Check className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
-                  {iconSavedFlash ? 'Icon Dipasang!' : 'Jadikan Icon'}
-                </button>
-                <button
-                  type="button"
                   onClick={handleDownloadIconPng}
                   className="min-h-[44px] px-3 py-2.5 rounded-2xl bg-[#377EC0] hover:bg-[#5460AC] text-white text-xs font-extrabold inline-flex items-center justify-center gap-1.5 shadow-md shadow-[#377EC0]/20 cursor-pointer"
                 >
                   <Download className="w-4 h-4" />
                   Unduh Icon PNG
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <button
+                  type="button"
+                  onClick={handleResetDefault}
+                  className="text-xs font-extrabold text-slate-500 hover:text-slate-800 inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Reset Gaya Awal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChangeAvatar(composedAvatar);
+                    onSetAsIcon();
+                    triggerReaction('Icon profil langsung diperbarui!');
+                  }}
+                  className="text-xs font-extrabold text-[#377EC0] hover:underline inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Pasang ke Icon Header
                 </button>
               </div>
             </div>
@@ -567,31 +822,46 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             </div>
           </div>
 
-          {/* RIGHT: Visual Option Selector Tabs */}
+          {/* RIGHT: Panel 'Kustomisasi Mendalam' */}
           <div className="lg:col-span-7 bg-white rounded-[32px] p-6 sm:p-8 shadow-xl shadow-[#377EC0]/10 border border-[#9FD2D6]/60 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#377EC0]">
+                  Studio Personalisasi
+                </p>
+                <h2 className="font-pixel text-2xl sm:text-3xl text-slate-900">
+                  Kustomisasi Mendalam
+                </h2>
+              </div>
+              <span className="text-xs font-bold text-slate-500">
+                Pilih tiap kategori elemen lalu klik Simpan Avatar
+              </span>
+            </div>
+
+            {/* Category Selector Pills */}
             <div className="flex flex-wrap gap-2 border-b border-slate-100 pb-4">
-              {TABS.map((tab) => {
-                const active = activeTab === tab.id;
+              {DEEP_CATEGORIES.map((cat) => {
+                const active = selectedCategory === cat.id;
                 return (
                   <button
-                    key={tab.id}
+                    key={cat.id}
                     type="button"
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`min-h-[44px] px-4 py-2 rounded-2xl text-xs font-extrabold transition-all cursor-pointer ${
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`min-h-[42px] px-3.5 py-2 rounded-2xl text-xs font-extrabold transition-all cursor-pointer ${
                       active
                         ? 'bg-[#377EC0] text-white shadow-md shadow-[#377EC0]/20'
                         : 'bg-[#E8F5FA] text-slate-700 hover:bg-[#9FD2D6]/40'
                     }`}
                   >
-                    {tab.label}
+                    {cat.label}
                   </button>
                 );
               })}
             </div>
 
-            {activeTab === 'wajah' && (
+            {/* 1. BENTUK WAJAH */}
+            {selectedCategory === 'bentuk-wajah' && (
               <div className="space-y-6">
-                {/* Gender with Icons */}
                 <div className="space-y-2.5">
                   <span className="text-xs font-extrabold text-slate-700 block">
                     Jenis Kelamin & Siluet Outfit
@@ -604,12 +874,15 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                         { value: 'netral', label: 'Netral' },
                       ] as const
                     ).map((g) => {
-                      const active = avatar.gender === g.value;
+                      const active = gender === g.value;
                       return (
                         <button
                           key={g.value}
                           type="button"
-                          onClick={() => updateField('gender', g.value)}
+                          onClick={() => {
+                            setGender(g.value);
+                            reactCategory('bentuk-wajah');
+                          }}
                           className={`min-h-[64px] px-3 py-2.5 rounded-2xl border-2 flex flex-col items-center justify-center gap-1.5 text-xs font-extrabold transition-all cursor-pointer ${
                             active
                               ? 'bg-[#377EC0] text-white border-[#377EC0] shadow-md shadow-[#377EC0]/20'
@@ -624,154 +897,295 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   </div>
                 </div>
 
-                {renderVisualChoiceGrid('Bentuk Muka', 'faceShape', 'head', [
-                  { value: 'round', label: 'Bulat' },
-                  { value: 'oval', label: 'Oval' },
-                  { value: 'square', label: 'Kotak Manis' },
-                  { value: 'heart', label: 'Heart' },
-                ])}
-
-                {renderColorRow('Warna Kulit', AVATAR_PALETTES.skin, avatar.skinColor, (hex) =>
-                  updateField('skinColor', hex)
+                {renderVisualChoiceGrid(
+                  'Pilih Bentuk Wajah',
+                  'faceShape',
+                  faceShape,
+                  (val) => {
+                    setFaceShape(val);
+                    reactCategory('bentuk-wajah');
+                  },
+                  'head',
+                  [
+                    { value: 'round', label: 'Bulat Chibi' },
+                    { value: 'oval', label: 'Oval Lembut' },
+                    { value: 'square', label: 'Kotak Manis' },
+                    { value: 'heart', label: 'Heart Shape' },
+                  ]
                 )}
               </div>
             )}
 
-            {activeTab === 'rambut' && (
+            {/* 2. ALIS */}
+            {selectedCategory === 'alis' && (
               <div className="space-y-6">
-                {renderVisualChoiceGrid('Model Rambut (10 Pilihan)', 'hairStyle', 'head', [
-                  { value: 'bob', label: 'Bob Rapi' },
-                  { value: 'side-swept', label: 'Belah Samping' },
-                  { value: 'poni', label: 'Panjang Poni' },
-                  { value: 'pigtails', label: 'Kuncir Tinggi' },
-                  { value: 'twintails-low', label: 'Kuncir Bawah' },
-                  { value: 'bun', label: 'Cepol Atas' },
-                  { value: 'parted', label: 'Gelombang' },
-                  { value: 'wavy-long', label: 'Panjang Ikal' },
-                  { value: 'short', label: 'Pendek Shaggy' },
-                  { value: 'curly-afro', label: 'Keriting Lucu' },
-                ])}
-
-                {renderColorRow('Warna Rambut', AVATAR_PALETTES.hair, avatar.hairColor, (hex) =>
-                  updateField('hairColor', hex)
+                {renderVisualChoiceGrid(
+                  'Bentuk Alis',
+                  'eyebrowStyle',
+                  eyebrowStyle,
+                  (val) => {
+                    setEyebrowStyle(val);
+                    reactCategory('alis');
+                  },
+                  'head',
+                  [
+                    { value: 'soft', label: 'Lembut' },
+                    { value: 'thick', label: 'Tebal Tegas' },
+                    { value: 'raised', label: 'Naik Ekspresif' },
+                    { value: 'flat', label: 'Lurus' },
+                  ]
                 )}
 
-                {renderVisualChoiceGrid('Bentuk Alis', 'eyebrowStyle', 'head', [
-                  { value: 'soft', label: 'Lembut' },
-                  { value: 'thick', label: 'Tebal' },
-                  { value: 'raised', label: 'Naik' },
-                  { value: 'flat', label: 'Lurus' },
-                ])}
+                {renderColorRow('Warna Alis', AVATAR_PALETTES.hair, eyebrowColor, (hex) => {
+                  setEyebrowColor(hex);
+                  reactCategory('alis');
+                })}
+              </div>
+            )}
 
-                {renderColorRow('Warna Alis', AVATAR_PALETTES.hair, avatar.eyebrowColor, (hex) =>
-                  updateField('eyebrowColor', hex)
+            {/* 3. WARNA KULIT & MAKE UP */}
+            {selectedCategory === 'warna-kulit' && (
+              <div className="space-y-6">
+                {renderColorRow('Warna Kulit', AVATAR_PALETTES.skin, skinColor, (hex) => {
+                  setSkinColor(hex);
+                  reactCategory('warna-kulit');
+                })}
+
+                {renderVisualChoiceGrid(
+                  'Riasan / Blush Pipi',
+                  'makeupStyle',
+                  makeupStyle,
+                  (val) => {
+                    setMakeupStyle(val);
+                    reactCategory('warna-kulit');
+                  },
+                  'head',
+                  [
+                    { value: 'none', label: 'Natural' },
+                    { value: 'blush-pink', label: 'Blush Pink' },
+                    { value: 'blush-peach', label: 'Blush Peach' },
+                    { value: 'freckles', label: 'Freckles' },
+                    { value: 'pastel-shadow', label: 'Eyeshadow' },
+                  ]
                 )}
               </div>
             )}
 
-            {activeTab === 'ekspresi' && (
+            {/* 4. MATA */}
+            {selectedCategory === 'mata' && (
               <div className="space-y-6">
-                {renderVisualChoiceGrid('Bentuk Mata (9 Pilihan)', 'eyeStyle', 'head', [
-                  { value: 'sparkle', label: 'Berbinar' },
-                  { value: 'big', label: 'Bulat Besar' },
-                  { value: 'starry', label: 'Bintang' },
-                  { value: 'lashes', label: 'Lentik' },
-                  { value: 'cat', label: 'Mata Kucing' },
-                  { value: 'wink', label: 'Kedip' },
-                  { value: 'chill', label: 'Santai' },
-                  { value: 'sleepy', label: 'Mengantuk' },
-                  { value: 'happy', label: 'Ceria' },
-                ])}
-
-                {renderColorRow('Warna Mata', AVATAR_PALETTES.eyes, avatar.eyeColor, (hex) =>
-                  updateField('eyeColor', hex)
+                {renderVisualChoiceGrid(
+                  'Bentuk Mata (9 Pilihan)',
+                  'eyeStyle',
+                  eyeStyle,
+                  (val) => {
+                    setEyeStyle(val);
+                    reactCategory('mata');
+                  },
+                  'head',
+                  [
+                    { value: 'sparkle', label: 'Berbinar' },
+                    { value: 'big', label: 'Bulat Besar' },
+                    { value: 'starry', label: 'Bintang' },
+                    { value: 'lashes', label: 'Lentik' },
+                    { value: 'cat', label: 'Mata Kucing' },
+                    { value: 'wink', label: 'Kedip' },
+                    { value: 'chill', label: 'Santai' },
+                    { value: 'sleepy', label: 'Mengantuk' },
+                    { value: 'happy', label: 'Ceria' },
+                  ]
                 )}
 
-                {renderVisualChoiceGrid('Bentuk Hidung', 'noseStyle', 'head', [
-                  { value: 'triangle', label: 'Segitiga' },
-                  { value: 'button', label: 'Bulat' },
-                  { value: 'tiny', label: 'Mungil' },
-                ])}
-
-                {renderVisualChoiceGrid('Bentuk Mulut (8 Pilihan)', 'mouthStyle', 'head', [
-                  { value: 'smile', label: 'Senyum' },
-                  { value: 'grin', label: 'Tertawa' },
-                  { value: 'cheer', label: 'Gembira' },
-                  { value: 'cat', label: 'Kucing (:3)' },
-                  { value: 'tongue', label: 'Melet Lucu' },
-                  { value: 'surprised', label: 'Kaget (o)' },
-                  { value: 'pout', label: 'Cemberut' },
-                  { value: 'cool', label: 'Santai' },
-                ])}
+                {renderColorRow('Warna Mata', AVATAR_PALETTES.eyes, eyeColor, (hex) => {
+                  setEyeColor(hex);
+                  reactCategory('mata');
+                })}
               </div>
             )}
 
-            {activeTab === 'makeup' && (
+            {/* 5. HIDUNG */}
+            {selectedCategory === 'hidung' && (
               <div className="space-y-6">
-                {renderVisualChoiceGrid('Make Up Wajah', 'makeupStyle', 'head', [
-                  { value: 'none', label: 'Natural' },
-                  { value: 'blush-pink', label: 'Blush Pink' },
-                  { value: 'blush-peach', label: 'Blush Peach' },
-                  { value: 'freckles', label: 'Freckles' },
-                  { value: 'pastel-shadow', label: 'Eyeshadow' },
-                ])}
-
-                {renderVisualChoiceGrid('Aksesoris (10 Pilihan)', 'accessory', 'head', [
-                  { value: 'none', label: 'Polos' },
-                  { value: 'flower-crown', label: 'Mahkota Bunga' },
-                  { value: 'glasses', label: 'Kacamata' },
-                  { value: 'sunglasses', label: 'Kacamata Hitam' },
-                  { value: 'cap', label: 'Topi Panitia' },
-                  { value: 'beret', label: 'Baret Seniman' },
-                  { value: 'cat-ears', label: 'Bando Kucing' },
-                  { value: 'headphones', label: 'Headphone' },
-                  { value: 'ribbon-bow', label: 'Pita Besar' },
-                  { value: 'star-clip', label: 'Jepit Bintang' },
-                ])}
+                {renderVisualChoiceGrid(
+                  'Bentuk Hidung',
+                  'noseStyle',
+                  noseStyle,
+                  (val) => {
+                    setNoseStyle(val);
+                    reactCategory('hidung');
+                  },
+                  'head',
+                  [
+                    { value: 'triangle', label: 'Segitiga Ikonik' },
+                    { value: 'button', label: 'Kancing Bulat' },
+                    { value: 'tiny', label: 'Titik Mungil' },
+                  ]
+                )}
               </div>
             )}
 
-            {activeTab === 'outfit' && (
+            {/* 6. MULUT */}
+            {selectedCategory === 'mulut' && (
               <div className="space-y-6">
-                {renderVisualChoiceGrid('Model Baju (7 Pilihan)', 'shirtStyle', 'torso', [
-                  { value: 'ribbon-uniform', label: 'Seragam Pita' },
-                  { value: 'aloha', label: 'Kemeja Aloha' },
-                  { value: 'tee', label: 'Kaos Event' },
-                  { value: 'collar', label: 'Kemeja Kerah' },
-                  { value: 'hoodie', label: 'Hoodie' },
-                  { value: 'overall', label: 'Overall' },
-                  { value: 'dress', label: 'Dress' },
-                ])}
+                {renderVisualChoiceGrid(
+                  'Bentuk Mulut (8 Pilihan)',
+                  'mouthStyle',
+                  mouthStyle,
+                  (val) => {
+                    setMouthStyle(val);
+                    reactCategory('mulut');
+                  },
+                  'head',
+                  [
+                    { value: 'smile', label: 'Senyum' },
+                    { value: 'grin', label: 'Tertawa' },
+                    { value: 'cheer', label: 'Gembira' },
+                    { value: 'cat', label: 'Kucing (:3)' },
+                    { value: 'tongue', label: 'Melet Lucu' },
+                    { value: 'surprised', label: 'Kaget (o)' },
+                    { value: 'pout', label: 'Cemberut' },
+                    { value: 'cool', label: 'Santai' },
+                  ]
+                )}
+              </div>
+            )}
 
-                {renderColorRow('Warna Baju', AVATAR_PALETTES.outfit, avatar.shirtColor, (hex) =>
-                  updateField('shirtColor', hex)
+            {/* 7. RAMBUT */}
+            {selectedCategory === 'rambut' && (
+              <div className="space-y-6">
+                {renderVisualChoiceGrid(
+                  'Model Rambut (10 Pilihan)',
+                  'hairStyle',
+                  hairStyle,
+                  (val) => {
+                    setHairStyle(val);
+                    reactCategory('rambut');
+                  },
+                  'head',
+                  [
+                    { value: 'bob', label: 'Bob Rapi' },
+                    { value: 'side-swept', label: 'Belah Samping' },
+                    { value: 'poni', label: 'Panjang Poni' },
+                    { value: 'pigtails', label: 'Kuncir Tinggi' },
+                    { value: 'twintails-low', label: 'Kuncir Bawah' },
+                    { value: 'bun', label: 'Cepol Atas' },
+                    { value: 'parted', label: 'Gelombang' },
+                    { value: 'wavy-long', label: 'Panjang Ikal' },
+                    { value: 'short', label: 'Pendek Shaggy' },
+                    { value: 'curly-afro', label: 'Keriting Lucu' },
+                  ]
                 )}
 
-                {renderVisualChoiceGrid('Jaket & Luaran (7 Pilihan)', 'jacketStyle', 'torso', [
-                  { value: 'none', label: 'Tanpa Jaket' },
-                  { value: 'cardigan', label: 'Kardigan' },
-                  { value: 'blazer', label: 'Blazer' },
-                  { value: 'sweater-vest', label: 'Rompi Rajut' },
-                  { value: 'varsity', label: 'Varsity' },
-                  { value: 'denim', label: 'Denim' },
-                  { value: 'parka', label: 'Parka' },
-                ])}
+                {renderColorRow('Warna Rambut', AVATAR_PALETTES.hair, hairColor, (hex) => {
+                  setHairColor(hex);
+                  reactCategory('rambut');
+                })}
+              </div>
+            )}
 
-                {avatar.jacketStyle !== 'none' &&
-                  renderColorRow('Warna Jaket', AVATAR_PALETTES.outfit, avatar.jacketColor, (hex) =>
-                    updateField('jacketColor', hex)
-                  )}
-
-                {renderVisualChoiceGrid('Model Sepatu', 'shoeStyle', 'shoes', [
-                  { value: 'sneakers', label: 'Sneakers' },
-                  { value: 'loafers', label: 'Loafers' },
-                  { value: 'maryjane', label: 'Mary Jane' },
-                  { value: 'boots', label: 'Boots' },
-                ])}
-
-                {renderColorRow('Warna Sepatu', AVATAR_PALETTES.outfit, avatar.shoeColor, (hex) =>
-                  updateField('shoeColor', hex)
+            {/* 8. AKSESORIS */}
+            {selectedCategory === 'aksesoris' && (
+              <div className="space-y-6">
+                {renderVisualChoiceGrid(
+                  'Aksesoris (10 Pilihan)',
+                  'accessory',
+                  accessory,
+                  (val) => {
+                    setAccessory(val);
+                    reactCategory('aksesoris');
+                  },
+                  'head',
+                  [
+                    { value: 'none', label: 'Polos' },
+                    { value: 'flower-crown', label: 'Mahkota Bunga' },
+                    { value: 'glasses', label: 'Kacamata' },
+                    { value: 'sunglasses', label: 'Kacamata Hitam' },
+                    { value: 'cap', label: 'Topi Panitia' },
+                    { value: 'beret', label: 'Baret Seniman' },
+                    { value: 'cat-ears', label: 'Bando Kucing' },
+                    { value: 'headphones', label: 'Headphone' },
+                    { value: 'ribbon-bow', label: 'Pita Besar' },
+                    { value: 'star-clip', label: 'Jepit Bintang' },
+                  ]
                 )}
+              </div>
+            )}
+
+            {/* 9. BAJU, JAKET & SEPATU */}
+            {selectedCategory === 'outfit' && (
+              <div className="space-y-6">
+                {renderVisualChoiceGrid(
+                  'Model Baju (7 Pilihan)',
+                  'shirtStyle',
+                  shirtStyle,
+                  (val) => {
+                    setShirtStyle(val);
+                    reactCategory('outfit');
+                  },
+                  'torso',
+                  [
+                    { value: 'ribbon-uniform', label: 'Seragam Pita' },
+                    { value: 'aloha', label: 'Kemeja Aloha' },
+                    { value: 'tee', label: 'Kaos Event' },
+                    { value: 'collar', label: 'Kemeja Kerah' },
+                    { value: 'hoodie', label: 'Hoodie' },
+                    { value: 'overall', label: 'Overall' },
+                    { value: 'dress', label: 'Dress' },
+                  ]
+                )}
+
+                {renderColorRow('Warna Baju', AVATAR_PALETTES.outfit, shirtColor, (hex) => {
+                  setShirtColor(hex);
+                  reactCategory('outfit');
+                })}
+
+                {renderVisualChoiceGrid(
+                  'Jaket & Luaran (7 Pilihan)',
+                  'jacketStyle',
+                  jacketStyle,
+                  (val) => {
+                    setJacketStyle(val);
+                    reactCategory('outfit');
+                  },
+                  'torso',
+                  [
+                    { value: 'none', label: 'Tanpa Jaket' },
+                    { value: 'cardigan', label: 'Kardigan' },
+                    { value: 'blazer', label: 'Blazer' },
+                    { value: 'sweater-vest', label: 'Rompi Rajut' },
+                    { value: 'varsity', label: 'Varsity' },
+                    { value: 'denim', label: 'Denim' },
+                    { value: 'parka', label: 'Parka' },
+                  ]
+                )}
+
+                {jacketStyle !== 'none' &&
+                  renderColorRow('Warna Jaket', AVATAR_PALETTES.outfit, jacketColor, (hex) => {
+                    setJacketColor(hex);
+                    reactCategory('outfit');
+                  })}
+
+                {renderVisualChoiceGrid(
+                  'Model Sepatu',
+                  'shoeStyle',
+                  shoeStyle,
+                  (val) => {
+                    setShoeStyle(val);
+                    reactCategory('outfit');
+                  },
+                  'shoes',
+                  [
+                    { value: 'sneakers', label: 'Sneakers' },
+                    { value: 'loafers', label: 'Loafers' },
+                    { value: 'maryjane', label: 'Mary Jane' },
+                    { value: 'boots', label: 'Boots' },
+                  ]
+                )}
+
+                {renderColorRow('Warna Sepatu', AVATAR_PALETTES.outfit, shoeColor, (hex) => {
+                  setShoeColor(hex);
+                  reactCategory('outfit');
+                })}
               </div>
             )}
           </div>

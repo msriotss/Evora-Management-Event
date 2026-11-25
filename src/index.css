@@ -90,6 +90,55 @@
   animation: flameWarmGlow 2.2s ease-in-out infinite;
 }
 
+@keyframes avatarIdleSway {
+  0%, 100% {
+    transform: translateY(0px) rotate(-1.4deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(1.4deg);
+  }
+}
+
+@keyframes avatarExpressPop {
+  0% {
+    transform: scale(1) translateY(0);
+  }
+  30% {
+    transform: scale(1.07, 0.94) translateY(3px);
+  }
+  65% {
+    transform: scale(0.97, 1.05) translateY(-9px) rotate(2deg);
+  }
+  100% {
+    transform: scale(1) translateY(0) rotate(0deg);
+  }
+}
+
+@keyframes bubblePop {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.86);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.avatar-sway {
+  animation: avatarIdleSway 3.2s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+.avatar-express {
+  animation: avatarExpressPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: bottom center;
+}
+
+.bubble-pop {
+  animation: bubblePop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
 .float-a {
   animation: floatGentle 8s ease-in-out infinite;
 }
@@ -102,7 +151,10 @@
   .float-a,
   .float-b,
   .flame-glow-frozen,
-  .flame-glow-burning {
+  .flame-glow-burning,
+  .avatar-sway,
+  .avatar-express,
+  .bubble-pop {
     animation: none;
   }
 }

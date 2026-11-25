@@ -117,6 +117,7 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
                       config={avatar}
                       mode="full"
                       softShadow
+                      animateIdle
                       className="w-28 h-36"
                     />
                   </div>
@@ -149,6 +150,7 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
                   config={avatar}
                   mode="full"
                   softShadow
+                  animateIdle
                   className="w-28 h-36"
                 />
               </button>

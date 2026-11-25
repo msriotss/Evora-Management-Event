@@ -456,8 +456,7 @@ export default function App() {
             currentUser={currentUser}
             onChangeAvatar={handleUpdateAvatar}
             onSetAsIcon={() => {
-              handleUpdateAvatar(avatar);
-              showToast('Avatar berhasil dipasang sebagai Icon Profil EVORA!');
+              showToast('Avatar berhasil disimpan dan dipasang sebagai Icon Profil EVORA!');
             }}
             onToggleFreeze={handleToggleStreakFreeze}
             onBackHome={() => {

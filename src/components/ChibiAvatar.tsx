@@ -5,6 +5,8 @@ interface ChibiAvatarProps {
   config: AvatarConfig;
   mode?: 'full' | 'head' | 'torso' | 'shoes';
   softShadow?: boolean;
+  animateIdle?: boolean;
+  isExpressing?: boolean;
   className?: string;
   title?: string;
 }
@@ -20,7 +22,18 @@ function shadeHex(hex: string, amount: number): string {
 }
 
 export const ChibiAvatar = forwardRef<SVGSVGElement, ChibiAvatarProps>(
-  ({ config, mode = 'full', softShadow = true, className = 'w-40 h-52', title }, ref) => {
+  (
+    {
+      config,
+      mode = 'full',
+      softShadow = true,
+      animateIdle = false,
+      isExpressing = false,
+      className = 'w-40 h-52',
+      title,
+    },
+    ref
+  ) => {
     const uid = useId().replace(/:/g, '');
     const shadowFilterId = `evora-chibi-shadow-${uid}`;
 
@@ -701,12 +714,21 @@ export const ChibiAvatar = forwardRef<SVGSVGElement, ChibiAvatarProps>(
             </g>
           )}
 
-          {/* Arms & Cute Round Hands */}
+          {/* Arms & Cute Round Hands (Right arm waves cheerfully when expressing!) */}
           <g>
             <path d="M84 176 L58 214" stroke={config.jacketStyle !== 'none' ? config.jacketColor : config.shirtColor} strokeWidth="18" strokeLinecap="round" />
-            <path d="M156 176 L182 214" stroke={config.jacketStyle !== 'none' ? config.jacketColor : config.shirtColor} strokeWidth="18" strokeLinecap="round" />
             <circle cx="55" cy="218" r="10" fill={config.skinColor} stroke={skinShade} strokeWidth="1.5" />
-            <circle cx="185" cy="218" r="10" fill={config.skinColor} stroke={skinShade} strokeWidth="1.5" />
+            {isExpressing ? (
+              <g>
+                <path d="M156 176 L190 150" stroke={config.jacketStyle !== 'none' ? config.jacketColor : config.shirtColor} strokeWidth="18" strokeLinecap="round" />
+                <circle cx="195" cy="146" r="10" fill={config.skinColor} stroke={skinShade} strokeWidth="1.5" />
+              </g>
+            ) : (
+              <g>
+                <path d="M156 176 L182 214" stroke={config.jacketStyle !== 'none' ? config.jacketColor : config.shirtColor} strokeWidth="18" strokeLinecap="round" />
+                <circle cx="185" cy="218" r="10" fill={config.skinColor} stroke={skinShade} strokeWidth="1.5" />
+              </g>
+            )}
           </g>
 
           {/* Torso / Shirt */}
@@ -865,8 +887,17 @@ export const ChibiAvatar = forwardRef<SVGSVGElement, ChibiAvatarProps>(
           <ellipse cx="120" cy="293" rx="44" ry="8" fill="#1E3A8A" opacity="0.15" />
         )}
 
-        <g filter={softShadow ? `url(#${shadowFilterId})` : undefined}>
+        <g
+          filter={softShadow ? `url(#${shadowFilterId})` : undefined}
+          className={isExpressing ? 'avatar-express' : animateIdle ? 'avatar-sway' : undefined}
+        >
           {characterArtwork}
+          {isExpressing && mode === 'full' && (
+            <g>
+              <polygon points="36,78 40,86 48,88 40,91 36,99 32,91 24,88 32,86" fill="#FBDF54" />
+              <polygon points="204,70 207,76 213,78 207,80 204,86 201,80 195,78 201,76" fill="#12BAAA" />
+            </g>
+          )}
         </g>
       </svg>
     );
