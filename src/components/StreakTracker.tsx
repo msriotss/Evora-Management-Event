@@ -1,10 +1,12 @@
 import React from 'react';
-import { Flame, Check, Gamepad2, Calendar, Trophy, Sparkles } from 'lucide-react';
+import { Check, Gamepad2, Calendar, Trophy, Sparkles, Snowflake, Flame } from 'lucide-react';
 import { StreakState } from '../types/evora';
+import { StreakFlameBadge } from './StreakFlameBadge';
 
 interface StreakTrackerProps {
   streak: StreakState;
   onToggleGoal: (goalId: string) => void;
+  onToggleFreeze: () => void;
   onOpenGame: () => void;
   onCreateEventClick: () => void;
 }
@@ -40,6 +42,7 @@ const MICROPETS = [
 export const StreakTracker: React.FC<StreakTrackerProps> = ({
   streak,
   onToggleGoal,
+  onToggleFreeze,
   onOpenGame,
   onCreateEventClick,
 }) => {
@@ -58,22 +61,37 @@ export const StreakTracker: React.FC<StreakTrackerProps> = ({
           <div className="lg:col-span-7 bg-white rounded-[32px] p-6 sm:p-8 shadow-xl shadow-[#377EC0]/10 border border-[#9FD2D6]/50 flex flex-col justify-between gap-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                {/* Animated TikTok-Style Flame Badge */}
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#FBDF54] via-[#F7891F] to-[#F04F52] flex flex-col items-center justify-center text-white shadow-lg shadow-[#F7891F]/30 shrink-0">
-                  <Flame className="w-7 h-7 fill-white" />
-                  <span className="font-pixel text-sm leading-none mt-0.5 tabular-nums">
-                    {streak.currentDays}d
-                  </span>
-                </div>
+                <StreakFlameBadge isFrozen={streak.isFrozen} days={streak.currentDays} size="md" />
                 <div>
-                  <p className="text-xs font-extrabold uppercase tracking-wider text-[#377EC0]">
-                    Streak Panitia Bulanan
-                  </p>
-                  <h2 className="font-pixel text-2xl sm:text-3xl text-slate-900 leading-tight">
-                    {streak.currentDays} Hari Api Menyala!
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-xs font-extrabold uppercase tracking-wider text-[#377EC0]">
+                      Streak Panitia Bulanan
+                    </p>
+                    <span
+                      className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold inline-flex items-center gap-1 ${
+                        streak.isFrozen
+                          ? 'bg-[#E8F5FA] text-[#377EC0] border border-[#9FD2D6]'
+                          : 'bg-[#FFF4E5] text-[#F7891F] border border-[#FBDF54]'
+                      }`}
+                    >
+                      {streak.isFrozen ? (
+                        <>
+                          <Snowflake className="w-3 h-3" /> Api Beku
+                        </>
+                      ) : (
+                        <>
+                          <Flame className="w-3 h-3" /> Api Menyala
+                        </>
+                      )}
+                    </span>
+                  </div>
+                  <h2 className="font-pixel text-2xl sm:text-3xl text-slate-900 leading-tight mt-0.5">
+                    {streak.isFrozen
+                      ? `${streak.currentDays} Hari Dibekukan (Aman)`
+                      : `${streak.currentDays} Hari Api Menyala!`}
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5 tabular-nums">
-                    Rekor terpanjang: {streak.longestDays} hari · Tier:{' '}
+                    Rekor: {streak.longestDays} hari · Token Es: {streak.freezeTokens} · Tier:{' '}
                     <strong className="text-[#377EC0]">
                       {streak.monthlyEventsHosted >= 5
                         ? 'Super Rainbow'
@@ -85,13 +103,34 @@ export const StreakTracker: React.FC<StreakTrackerProps> = ({
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={onCreateEventClick}
-                className="px-4 py-2.5 rounded-2xl bg-[#377EC0] hover:bg-[#5460AC] text-white text-xs font-extrabold shadow-md shadow-[#377EC0]/20 whitespace-nowrap shrink-0 cursor-pointer transition-colors"
-              >
-                + Tambah Event Panitia
-              </button>
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={onToggleFreeze}
+                  className={`px-3.5 py-2.5 rounded-2xl text-xs font-extrabold border transition-colors whitespace-nowrap shrink-0 cursor-pointer inline-flex items-center gap-1.5 ${
+                    streak.isFrozen
+                      ? 'bg-[#FFF4E5] hover:bg-[#FBDF54]/40 text-[#F7891F] border-[#FBDF54]'
+                      : 'bg-[#E8F5FA] hover:bg-[#9FD2D6]/50 text-[#377EC0] border-[#9FD2D6]'
+                  }`}
+                >
+                  {streak.isFrozen ? (
+                    <>
+                      <Flame className="w-3.5 h-3.5" /> Nyalakan Api
+                    </>
+                  ) : (
+                    <>
+                      <Snowflake className="w-3.5 h-3.5" /> Bekukan Api
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={onCreateEventClick}
+                  className="px-4 py-2.5 rounded-2xl bg-[#377EC0] hover:bg-[#5460AC] text-white text-xs font-extrabold shadow-md shadow-[#377EC0]/20 whitespace-nowrap shrink-0 cursor-pointer transition-colors"
+                >
+                  + Tambah Event
+                </button>
+              </div>
             </div>
 
             {/* Monthly Panitia Goal Meter */}

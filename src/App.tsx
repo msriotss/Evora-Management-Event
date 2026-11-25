@@ -18,14 +18,27 @@ import { PesertaFlowModal } from './components/PesertaFlowModal';
 import { RoleDashboards } from './components/RoleDashboards';
 import { StreakTracker } from './components/StreakTracker';
 import { EventQuestGame } from './components/EventQuestGame';
-import { INITIAL_EVENTS, INITIAL_ORDERS, INITIAL_STREAK } from './data/initialData';
-import { EventItem, StreakState, TicketOrder, UserAccount } from './types/evora';
+import { ChibiAvatar } from './components/ChibiAvatar';
+import { ProfilePage } from './components/ProfilePage';
+import { INITIAL_AVATAR, INITIAL_EVENTS, INITIAL_ORDERS, INITIAL_STREAK } from './data/initialData';
+import { AvatarConfig, EventItem, StreakState, TicketOrder, UserAccount } from './types/evora';
 
 export default function App() {
   const [events, setEvents] = useState<EventItem[]>(INITIAL_EVENTS);
   const [orders, setOrders] = useState<TicketOrder[]>(INITIAL_ORDERS);
   const [streak, setStreak] = useState<StreakState>(INITIAL_STREAK);
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
+
+  const [activePage, setActivePage] = useState<'home' | 'profile'>('home');
+  const [avatar, setAvatar] = useState<AvatarConfig>(() => {
+    try {
+      const saved = localStorage.getItem('evora_avatar_v1');
+      if (saved) return { ...INITIAL_AVATAR, ...JSON.parse(saved) };
+    } catch {
+      // ignore storage errors
+    }
+    return INITIAL_AVATAR;
+  });
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [quotaExceeded, setQuotaExceeded] = useState(false);
@@ -50,6 +63,15 @@ export default function App() {
     return () => window.removeEventListener('gmp-quota-exceeded', handleQuota);
   }, []);
 
+  const handleUpdateAvatar = (next: AvatarConfig) => {
+    setAvatar(next);
+    try {
+      localStorage.setItem('evora_avatar_v1', JSON.stringify(next));
+    } catch {
+      // ignore storage errors
+    }
+  };
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => {
@@ -64,12 +86,41 @@ export default function App() {
     setMobileMenuOpen(false);
   };
 
+  const openProfilePage = () => {
+    setActivePage('profile');
+    setMobileMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const scrollToSection = (id: string) => {
     setMobileMenuOpen(false);
+    if (activePage !== 'home') {
+      setActivePage('home');
+      setTimeout(() => {
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 60);
+      return;
+    }
     const el = document.getElementById(id);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
     }
+  };
+
+  const handleToggleStreakFreeze = () => {
+    setStreak((prev) => {
+      const nextFrozen = !prev.isFrozen;
+      showToast(
+        nextFrozen
+          ? 'Mode Api Beku diaktifkan — streak panitia tetap aman terlindungi es!'
+          : 'Api Streak kembali menyala terang!'
+      );
+      return {
+        ...prev,
+        isFrozen: nextFrozen,
+      };
+    });
   };
 
   const bumpTodayStreak = (extraHosted = 0, extraJoined = 0) => {
@@ -78,6 +129,7 @@ export default function App() {
       const nextDays = hasToday ? prev.currentDays : prev.currentDays + 1;
       return {
         ...prev,
+        isFrozen: false,
         currentDays: nextDays,
         longestDays: Math.max(prev.longestDays, nextDays),
         monthlyEventsHosted: prev.monthlyEventsHosted + extraHosted,
@@ -191,6 +243,7 @@ export default function App() {
       const exists = prev.completedDailyGoals.includes(goalId);
       return {
         ...prev,
+        isFrozen: exists ? prev.isFrozen : false,
         completedDailyGoals: exists
           ? prev.completedDailyGoals.filter((g) => g !== goalId)
           : [...prev.completedDailyGoals, goalId],
@@ -213,6 +266,7 @@ export default function App() {
 
       return {
         ...prev,
+        isFrozen: false,
         questBestScore: Math.max(prev.questBestScore, score),
         unlockedPets: nextPets,
         completedDailyGoals: nextGoals,
@@ -245,13 +299,14 @@ export default function App() {
         </div>
       )}
 
-      {/* TOP BAR (3-Zone Contract + Blue Theme) */}
+      {/* TOP BAR (3-Zone Contract + Blue Theme + Live Avatar Icon) */}
       <header className="sticky top-0 z-40 bg-[#E8F5FA]/90 backdrop-blur-md border-b border-[#9FD2D6]/60">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-6">
           <a
             href="#top"
             onClick={(e) => {
               e.preventDefault();
+              setActivePage('home');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className="font-pixel text-2xl tracking-tight text-[#377EC0] whitespace-nowrap shrink-0"
@@ -286,14 +341,28 @@ export default function App() {
             </button>
             <button
               type="button"
-              onClick={() => scrollToSection('alur-kerja')}
-              className="hover:text-[#377EC0] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              onClick={openProfilePage}
+              className={`transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                activePage === 'profile' ? 'text-[#377EC0]' : 'hover:text-[#377EC0]'
+              }`}
             >
-              Alur Kerja
+              Profil & Avatar
             </button>
           </nav>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={openProfilePage}
+              title="Buka Halaman Profil & Ganti Avatar"
+              aria-label="Buka Halaman Profil & Ganti Avatar"
+              className={`w-10 h-10 rounded-full bg-white flex items-center justify-center border-2 transition-transform hover:scale-105 cursor-pointer overflow-hidden shadow-sm ${
+                activePage === 'profile' ? 'border-[#377EC0] ring-2 ring-[#9FD2D6]' : 'border-[#9FD2D6]'
+              }`}
+            >
+              <ChibiAvatar config={avatar} mode="head" className="w-9 h-9" />
+            </button>
+
             {currentUser ? (
               <button
                 type="button"
@@ -348,10 +417,10 @@ export default function App() {
             </button>
             <button
               type="button"
-              onClick={() => scrollToSection('alur-kerja')}
-              className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-extrabold text-slate-700 hover:bg-[#E8F5FA]"
+              onClick={openProfilePage}
+              className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-extrabold text-[#377EC0] bg-[#E8F5FA]"
             >
-              Alur Kerja
+              Profil & Studio Avatar
             </button>
           </div>
         )}
@@ -364,53 +433,76 @@ export default function App() {
           </div>
         )}
 
-        {/* 1. HERO SHOWCASE */}
-        <HeroShowcase
-          onExploreMap={() => scrollToSection('peta-event')}
-          onOpenAuth={openAuth}
-          onOpenGame={() => setGameOpen(true)}
-          publishedCount={publishedCount}
-          streakDays={streak.currentDays}
-          monthlyHosted={streak.monthlyEventsHosted}
-        />
-
-        {/* 2. ACTIVE WORKSPACE (WHEN LOGGED IN) */}
-        {currentUser && (
-          <RoleDashboards
-            currentUser={currentUser}
-            events={events}
-            orders={orders}
+        {activePage === 'profile' ? (
+          <ProfilePage
+            avatar={avatar}
             streak={streak}
-            onSwitchRole={(role) => setCurrentUser({ ...currentUser, role })}
-            onLogout={() => {
-              setCurrentUser(null);
-              showToast('Anda telah keluar dari akun.');
+            currentUser={currentUser}
+            onChangeAvatar={handleUpdateAvatar}
+            onSetAsIcon={() => {
+              handleUpdateAvatar(avatar);
+              showToast('Avatar berhasil dipasang sebagai Icon Profil EVORA!');
             }}
-            onSubmitNewEvent={handleSubmitNewEvent}
-            onResubmitEvent={handleResubmitEvent}
-            onAdminApprove={handleAdminApprove}
-            onAdminReject={handleAdminReject}
-            onCheckInOrder={handleCheckInOrder}
-            onToggleReminder={handleToggleReminder}
-            onSubmitFeedback={handleSubmitFeedback}
-            onGoToMap={() => scrollToSection('peta-event')}
+            onToggleFreeze={handleToggleStreakFreeze}
+            onBackHome={() => {
+              setActivePage('home');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onOpenAuth={() => openAuth('login', 'peserta')}
           />
-        )}
+        ) : (
+          <>
+            {/* 1. HERO SHOWCASE */}
+            <HeroShowcase
+              avatar={avatar}
+              isFrozen={streak.isFrozen}
+              onExploreMap={() => scrollToSection('peta-event')}
+              onOpenAuth={openAuth}
+              onOpenGame={() => setGameOpen(true)}
+              onOpenProfile={openProfilePage}
+              publishedCount={publishedCount}
+              streakDays={streak.currentDays}
+              monthlyHosted={streak.monthlyEventsHosted}
+            />
 
-        {/* 3. TIKTOK-STYLE STREAK PANITIA BULANAN & MISI HARIAN */}
-        <StreakTracker
-          streak={streak}
-          onToggleGoal={handleToggleDailyGoal}
-          onOpenGame={() => setGameOpen(true)}
-          onCreateEventClick={() => openAuth('register', 'organizer')}
-        />
+            {/* 2. ACTIVE WORKSPACE (WHEN LOGGED IN) */}
+            {currentUser && (
+              <RoleDashboards
+                currentUser={currentUser}
+                events={events}
+                orders={orders}
+                streak={streak}
+                onSwitchRole={(role) => setCurrentUser({ ...currentUser, role })}
+                onLogout={() => {
+                  setCurrentUser(null);
+                  showToast('Anda telah keluar dari akun.');
+                }}
+                onSubmitNewEvent={handleSubmitNewEvent}
+                onResubmitEvent={handleResubmitEvent}
+                onAdminApprove={handleAdminApprove}
+                onAdminReject={handleAdminReject}
+                onCheckInOrder={handleCheckInOrder}
+                onToggleReminder={handleToggleReminder}
+                onSubmitFeedback={handleSubmitFeedback}
+                onGoToMap={() => scrollToSection('peta-event')}
+              />
+            )}
 
-        {/* 4. INTERACTIVE GOOGLE MAPS & SCHEDULE EXPLORER */}
-        <InteractiveEventMap
-          events={events}
-          onSelectEventToRegister={(ev) => setCheckoutEvent(ev)}
-          onBecomeOrganizer={() => openAuth('register', 'organizer')}
-        />
+            {/* 3. TIKTOK-STYLE STREAK PANITIA BULANAN & MISI HARIAN */}
+            <StreakTracker
+              streak={streak}
+              onToggleGoal={handleToggleDailyGoal}
+              onToggleFreeze={handleToggleStreakFreeze}
+              onOpenGame={() => setGameOpen(true)}
+              onCreateEventClick={() => openAuth('register', 'organizer')}
+            />
+
+            {/* 4. INTERACTIVE GOOGLE MAPS & SCHEDULE EXPLORER */}
+            <InteractiveEventMap
+              events={events}
+              onSelectEventToRegister={(ev) => setCheckoutEvent(ev)}
+              onBecomeOrganizer={() => openAuth('register', 'organizer')}
+            />
 
         {/* 5. DAFTAR JADI PANITIA SECTION */}
         <section id="daftar-panitia" className="py-12 md:py-16">
@@ -583,6 +675,8 @@ export default function App() {
             </div>
           </div>
         </section>
+          </>
+        )}
       </main>
 
       {/* QUIET FOOTER */}

@@ -1,4 +1,4 @@
-import { EventItem, StreakState, TicketOrder } from '../types/evora';
+import { AvatarConfig, EventItem, StreakState, TicketOrder } from '../types/evora';
 
 export const INITIAL_EVENTS: EventItem[] = [
   {
@@ -179,6 +179,8 @@ export const INITIAL_ORDERS: TicketOrder[] = [
 export const INITIAL_STREAK: StreakState = {
   currentDays: 14,
   longestDays: 21,
+  isFrozen: false,
+  freezeTokens: 2,
   monthlyEventsHosted: 3,
   monthlyHostGoal: 5,
   monthlyEventsJoined: 4,
@@ -186,4 +188,77 @@ export const INITIAL_STREAK: StreakState = {
   unlockedPets: ['koko-kamera', 'mika-mic'],
   questBestScore: 180,
   completedDailyGoals: ['goal-map'],
+};
+
+export const INITIAL_AVATAR: AvatarConfig = {
+  gender: 'cewek',
+  skinColor: '#FCD5B5',
+  faceShape: 'round',
+  hairStyle: 'bob',
+  hairColor: '#2B6CB0',
+  eyeStyle: 'sparkle',
+  eyeColor: '#7C4D2B',
+  eyebrowStyle: 'soft',
+  eyebrowColor: '#2B6CB0',
+  noseStyle: 'triangle',
+  mouthStyle: 'smile',
+  makeupStyle: 'blush-pink',
+  shirtStyle: 'ribbon-uniform',
+  shirtColor: '#FFFFFF',
+  jacketStyle: 'cardigan',
+  jacketColor: '#377EC0',
+  shoeStyle: 'sneakers',
+  shoeColor: '#377EC0',
+  accessory: 'none',
+};
+
+export const AVATAR_PALETTES = {
+  skin: [
+    { name: 'Porcelain', hex: '#FFE6D6' },
+    { name: 'Peach Fair', hex: '#FCD5B5' },
+    { name: 'Warm Cream', hex: '#F5C199' },
+    { name: 'Honey', hex: '#E4A87C' },
+    { name: 'Caramel', hex: '#C68652' },
+    { name: 'Tan', hex: '#A4683D' },
+    { name: 'Chestnut', hex: '#7D4927' },
+    { name: 'Deep Cocoa', hex: '#573119' },
+  ],
+  hair: [
+    { name: 'Hitam Pekat', hex: '#26252B' },
+    { name: 'Cokelat Tua', hex: '#4B3228' },
+    { name: 'Cokelat Merah', hex: '#6E3235' },
+    { name: 'Kastanye', hex: '#9A4831' },
+    { name: 'Kuning Madu', hex: '#E2BC4B' },
+    { name: 'Blonde Lembut', hex: '#EDE28D' },
+    { name: 'Ash Olive', hex: '#B9B98A' },
+    { name: 'Abu Perak', hex: '#9AA0A6' },
+    { name: 'Biru Laut', hex: '#2B6CB0' },
+    { name: 'Biru Langit', hex: '#88C1E0' },
+    { name: 'Hijau Zamrud', hex: '#2E9D67' },
+    { name: 'Mint Teal', hex: '#12BAAA' },
+    { name: 'Merah Berry', hex: '#D93B43' },
+    { name: 'Oranye Cerah', hex: '#F7891F' },
+    { name: 'Lavender', hex: '#A78BFA' },
+    { name: 'Pink Pastel', hex: '#F48FB1' },
+  ],
+  eyes: [
+    { name: 'Hitam', hex: '#232329' },
+    { name: 'Cokelat', hex: '#7C4D2B' },
+    { name: 'Hijau', hex: '#3D8B5E' },
+    { name: 'Abu', hex: '#6C7A89' },
+    { name: 'Teal', hex: '#12BAAA' },
+    { name: 'Biru', hex: '#377EC0' },
+  ],
+  outfit: [
+    { name: 'Putih Bersih', hex: '#FFFFFF' },
+    { name: 'Biru Evora', hex: '#377EC0' },
+    { name: 'Biru Muda', hex: '#9FD2D6' },
+    { name: 'Indigo', hex: '#5460AC' },
+    { name: 'Mint', hex: '#12BAAA' },
+    { name: 'Kuning Cerah', hex: '#FBDF54' },
+    { name: 'Oranye', hex: '#F7891F' },
+    { name: 'Merah Coral', hex: '#F04F52' },
+    { name: 'Hitam Arang', hex: '#2D3748' },
+    { name: 'Krem Hangat', hex: '#FAF0CA' },
+  ],
 };

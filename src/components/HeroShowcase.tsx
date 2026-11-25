@@ -1,20 +1,27 @@
 import React from 'react';
-import { MapPin, Calendar, ArrowRight, Compass, Users, Flame, Gamepad2 } from 'lucide-react';
-import { EvoraHeroMascot } from './EvoraMascots';
+import { MapPin, Calendar, ArrowRight, Compass, Users, Flame, Gamepad2, Snowflake } from 'lucide-react';
+import { AvatarConfig } from '../types/evora';
+import { ChibiAvatar } from './ChibiAvatar';
 
 interface HeroShowcaseProps {
+  avatar: AvatarConfig;
+  isFrozen: boolean;
   onExploreMap: () => void;
   onOpenAuth: (mode: 'login' | 'register', role?: 'peserta' | 'organizer') => void;
   onOpenGame: () => void;
+  onOpenProfile: () => void;
   publishedCount: number;
   streakDays: number;
   monthlyHosted: number;
 }
 
 export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
+  avatar,
+  isFrozen,
   onExploreMap,
   onOpenAuth,
   onOpenGame,
+  onOpenProfile,
   publishedCount,
   streakDays,
   monthlyHosted,
@@ -26,8 +33,14 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
           {/* LEFT: Bold Pixel + Editorial Value Proposition */}
           <div className="lg:col-span-6 space-y-6 text-center lg:text-left">
             <div className="inline-flex items-center gap-2 text-xs font-extrabold tracking-widest uppercase text-[#377EC0]">
-              <Flame className="w-4 h-4 text-[#F7891F]" />
-              <span>Streak Panitia Aktif · {streakDays} Hari · {monthlyHosted} Event Bulan Ini</span>
+              {isFrozen ? (
+                <Snowflake className="w-4 h-4 text-[#377EC0]" />
+              ) : (
+                <Flame className="w-4 h-4 text-[#F7891F]" />
+              )}
+              <span>
+                {isFrozen ? 'Api Streak Beku' : 'Streak Panitia Menyala'} · {streakDays} Hari · {monthlyHosted} Event Bulan Ini
+              </span>
             </div>
 
             <h1 className="font-pixel text-4xl sm:text-5xl lg:text-[54px] text-slate-900 tracking-tight leading-[1.08] text-balance">
@@ -35,7 +48,7 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
             </h1>
 
             <p className="text-sm sm:text-base font-bold text-slate-600 leading-relaxed max-w-xl mx-auto lg:mx-0">
-              Eksplorasi lokasi konser, festival, dan workshop di Google Maps interaktif, daftar jadi panitia dengan streak bulanan ala TikTok, serta mainkan EVORA Panitia Rush.
+              Eksplorasi lokasi konser, festival, dan workshop di Google Maps interaktif, atur avatar panitia kustommu, dan raih streak bulanan ala TikTok.
             </p>
 
             {/* Primary + Secondary Actions */}
@@ -73,11 +86,17 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
               <span aria-hidden="true">·</span>
               <span>Google Maps Lokasi</span>
               <span aria-hidden="true">·</span>
-              <span>Streak Bulanan & E-Tiket QR</span>
+              <button
+                type="button"
+                onClick={onOpenProfile}
+                className="text-[#377EC0] hover:underline font-extrabold cursor-pointer"
+              >
+                Ganti Avatar & Profil →
+              </button>
             </div>
           </div>
 
-          {/* RIGHT: 3-Phone Illustrated Showcase (Blue & Bright Rainbow Palette) */}
+          {/* RIGHT: 3-Phone Illustrated Showcase + Sticker-Outlined Chibi Avatar */}
           <div className="lg:col-span-6 relative">
             <div className="relative mx-auto max-w-[540px] h-[390px] sm:h-[440px] flex items-center justify-center">
               {/* Soft Sky & Meadow Horizon */}
@@ -86,32 +105,52 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
                 aria-hidden="true"
               />
 
-              {/* PHONE 1 (Left-Back): Login & Streak */}
+              {/* PHONE 1 (Left-Back): Profile Avatar Sticker & Login */}
               <button
                 type="button"
-                onClick={() => onOpenAuth('login', 'peserta')}
-                className="hidden sm:flex flex-col justify-between text-left w-[175px] h-[320px] bg-white rounded-[30px] p-3.5 shadow-xl shadow-[#377EC0]/15 border border-[#9FD2D6]/60 -rotate-6 -translate-x-36 -translate-y-4 hover:-translate-y-6 transition-transform duration-300 z-10 cursor-pointer"
+                onClick={onOpenProfile}
+                className="hidden sm:flex flex-col justify-between text-left w-[178px] h-[325px] bg-white rounded-[30px] p-3.5 shadow-xl shadow-[#377EC0]/15 border border-[#9FD2D6]/60 -rotate-6 -translate-x-36 -translate-y-4 hover:-translate-y-6 transition-transform duration-300 z-10 cursor-pointer"
               >
-                <div className="flex flex-col items-center text-center pt-2">
-                  <div className="scale-75 -my-2">
-                    <EvoraHeroMascot />
+                <div className="flex flex-col items-center text-center pt-1">
+                  <div className="w-28 h-36 flex items-center justify-center">
+                    <ChibiAvatar
+                      config={avatar}
+                      mode="full"
+                      stickerEffect
+                      className="w-28 h-36"
+                    />
                   </div>
                   <p className="font-pixel text-sm text-slate-900 mt-1">
-                    Mulai di EVORA
+                    Avatar & Profil
                   </p>
-                  <p className="text-[10px] font-bold text-slate-500 leading-snug mt-1">
-                    Login peserta, panitia, atau admin.
+                  <p className="text-[10px] font-bold text-slate-500 leading-snug mt-0.5">
+                    Kustomisasi wajah, outfit & jadikan icon.
                   </p>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <div className="w-full py-2 rounded-xl bg-[#377EC0] text-white text-[10px] font-extrabold text-center">
-                    Masuk / Daftar
+                    Edit Karakter
                   </div>
                   <p className="text-[9px] text-center text-[#12BAAA] font-extrabold">
-                    Streak {streakDays} Hari Aktif
+                    {isFrozen ? `Streak ${streakDays}d (Beku)` : `Streak ${streakDays}d Menyala`}
                   </p>
                 </div>
+              </button>
+
+              {/* Floating Mobile Sticker Avatar Badge (visible on mobile too, bottom-left of Phone 2) */}
+              <button
+                type="button"
+                onClick={onOpenProfile}
+                aria-label="Buka halaman kustomisasi avatar profil"
+                className="sm:hidden absolute left-2 bottom-4 z-40 group cursor-pointer hover:scale-105 transition-transform"
+              >
+                <ChibiAvatar
+                  config={avatar}
+                  mode="full"
+                  stickerEffect
+                  className="w-28 h-36"
+                />
               </button>
 
               {/* PHONE 2 (Center): Winding Quest & Adventure Path */}
@@ -122,8 +161,17 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
               >
                 <div className="flex-1 rounded-[26px] overflow-hidden bg-gradient-to-b from-[#9FD2D6] via-[#E8F5FA] to-[#12BAAA]/35 relative p-3 flex flex-col justify-between">
                   <div className="flex items-center justify-between">
-                    <span className="px-2.5 py-1 rounded-full bg-white text-[10px] font-extrabold text-[#F7891F] shadow-sm tabular-nums flex items-center gap-1">
-                      <Flame className="w-3 h-3 fill-[#F7891F]" /> {streakDays}d
+                    <span
+                      className={`px-2.5 py-1 rounded-full bg-white text-[10px] font-extrabold shadow-sm tabular-nums flex items-center gap-1 ${
+                        isFrozen ? 'text-[#377EC0]' : 'text-[#F7891F]'
+                      }`}
+                    >
+                      {isFrozen ? (
+                        <Snowflake className="w-3 h-3 text-[#377EC0]" />
+                      ) : (
+                        <Flame className="w-3 h-3 fill-[#F7891F]" />
+                      )}
+                      {streakDays}d
                     </span>
                     <span className="w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-sm">
                       <Calendar className="w-3.5 h-3.5 text-[#377EC0]" />
