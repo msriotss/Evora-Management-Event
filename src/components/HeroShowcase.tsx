@@ -1,10 +1,21 @@
-import React from 'react';
-import { MapPin, Calendar, ArrowRight, Compass, Users, Flame, Gamepad2, Snowflake } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  MapPin,
+  Calendar,
+  ArrowRight,
+  Compass,
+  Users,
+  Flame,
+  Gamepad2,
+  Snowflake,
+  Camera,
+} from 'lucide-react';
 import { AvatarConfig } from '../types/evora';
 import { ChibiAvatar } from './ChibiAvatar';
 
 interface HeroShowcaseProps {
   avatar: AvatarConfig;
+  userName: string | null;
   isFrozen: boolean;
   onExploreMap: () => void;
   onOpenAuth: (mode: 'login' | 'register', role?: 'peserta' | 'organizer') => void;
@@ -17,6 +28,7 @@ interface HeroShowcaseProps {
 
 export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
   avatar,
+  userName,
   isFrozen,
   onExploreMap,
   onOpenAuth,
@@ -26,12 +38,48 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
   streakDays,
   monthlyHosted,
 }) => {
+  const [flashActive, setFlashActive] = useState(false);
+  const [snapCount, setSnapCount] = useState(0);
+  const flashTimerRef = useRef<number | null>(null);
+
+  const displayName = userName?.trim() ? userName.trim() : 'Sobat EVORA';
+
+  const triggerPhotoSnap = () => {
+    if (flashTimerRef.current) {
+      window.clearTimeout(flashTimerRef.current);
+    }
+    setFlashActive(true);
+    setSnapCount((c) => c + 1);
+    flashTimerRef.current = window.setTimeout(() => {
+      setFlashActive(false);
+    }, 820);
+  };
+
+  // Trigger camera flash + personalized greeting when entering website or logging in
+  useEffect(() => {
+    const entryDelay = window.setTimeout(() => {
+      triggerPhotoSnap();
+    }, 320);
+    return () => {
+      window.clearTimeout(entryDelay);
+      if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current);
+    };
+  }, [userName]);
+
+  const speechHeadline = userName?.trim()
+    ? `Cekrek! Halo, ${displayName}!`
+    : 'Cekrek! Halo, Sobat EVORA!';
+
+  const speechSub = userName?.trim()
+    ? 'Siap seru-seruan & kejar streak?'
+    : 'Yuk login atau edit avatarmu!';
+
   return (
-    <section className="pt-6 pb-8 md:pt-10 md:pb-12 relative overflow-hidden">
+    <section className="pt-6 pb-8 md:pt-10 md:pb-14 relative overflow-hidden">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
-          {/* LEFT: Bold Pixel + Editorial Value Proposition */}
-          <div className="lg:col-span-6 space-y-5 text-center lg:text-left">
+          {/* LEFT: Bold Pixel + Editorial Value Proposition (Always stays above layered phones) */}
+          <div className="lg:col-span-6 relative z-30 space-y-5 text-center lg:text-left">
             <div className="inline-flex items-center gap-2 text-xs font-extrabold tracking-widest uppercase text-[#377EC0]">
               {isFrozen ? (
                 <Snowflake className="w-4 h-4 text-[#377EC0]" />
@@ -96,20 +144,68 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
             </div>
           </div>
 
-          {/* RIGHT: 3-Phone Illustrated Showcase + Clean Chibi Avatar */}
-          <div className="lg:col-span-6 relative">
-            <div className="relative mx-auto max-w-[540px] h-[380px] sm:h-[420px] flex items-center justify-center">
+          {/* RIGHT: Clean Contained 3-Phone Layered Stack + Camera Entry Avatar */}
+          <div className="lg:col-span-6 relative z-10">
+            <div className="relative mx-auto w-full max-w-[490px] h-[410px] sm:h-[445px] flex items-center justify-center">
               {/* Soft Sky & Meadow Horizon */}
               <div
                 className="absolute inset-x-0 bottom-0 h-28 rounded-[36px] bg-gradient-to-t from-[#9FD2D6]/60 via-[#E8F5FA]/50 to-transparent pointer-events-none"
                 aria-hidden="true"
               />
 
-              {/* PHONE 1 (Left-Back): Profile Avatar & Login */}
-              <button
-                type="button"
+              {/* Brief Photographic Flash Glow Overlay on the Stage */}
+              {flashActive && (
+                <div
+                  key={`flash-${snapCount}`}
+                  className="pointer-events-none absolute inset-0 rounded-[36px] bg-[radial-gradient(circle_at_24%_48%,rgba(255,255,255,0.95),rgba(251,223,84,0.4)_42%,transparent_72%)] z-40 camera-flash-burst"
+                  aria-hidden="true"
+                />
+              )}
+
+              {/* Personalized Speech Bubble Chat above Avatar Phone (Desktop/Tablet) */}
+              <div
+                key={`bubble-${snapCount}-${displayName}`}
+                className="hidden sm:flex flex-col items-start absolute top-0 left-0 z-40 max-w-[235px] bg-white rounded-2xl px-3.5 py-2.5 shadow-xl shadow-[#377EC0]/20 border-2 border-[#377EC0] bubble-pop"
+              >
+                <div className="flex items-center justify-between w-full gap-2">
+                  <span className="text-[11px] font-extrabold text-[#377EC0] flex items-center gap-1 truncate">
+                    <Camera className="w-3.5 h-3.5 text-[#F7891F] shrink-0" />
+                    {speechHeadline}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      triggerPhotoSnap();
+                    }}
+                    className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-[#E8F5FA] hover:bg-[#9FD2D6]/50 text-[#377EC0] shrink-0 cursor-pointer"
+                    title="Potret ulang dengan flash"
+                  >
+                    Cekrek
+                  </button>
+                </div>
+                <p className="text-[10px] font-bold text-slate-600 mt-0.5 leading-snug">
+                  {speechSub}
+                </p>
+                {/* Bubble tail pointing down toward Phone 1 avatar */}
+                <div
+                  className="absolute -bottom-2 left-10 w-3.5 h-3.5 bg-white border-r-2 border-b-2 border-[#377EC0] rotate-45"
+                  aria-hidden="true"
+                />
+              </div>
+
+              {/* PHONE 1 (Layer Back-Left, z-10 — cleanly confined inside right column) */}
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={onOpenProfile}
-                className="hidden sm:flex flex-col justify-between text-left w-[178px] h-[325px] bg-white rounded-[30px] p-3.5 shadow-xl shadow-[#377EC0]/15 border border-[#9FD2D6]/60 -rotate-6 -translate-x-36 -translate-y-4 hover:-translate-y-6 transition-transform duration-300 z-10 cursor-pointer"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onOpenProfile();
+                  }
+                }}
+                className="hidden sm:flex flex-col justify-between text-left absolute left-0 top-14 w-[164px] h-[302px] bg-white rounded-[28px] p-3 shadow-xl shadow-[#377EC0]/15 border border-[#9FD2D6]/70 -rotate-6 z-10 hover:z-40 hover:-translate-y-2 transition-all duration-300 cursor-pointer"
               >
                 <div className="flex flex-col items-center text-center pt-1">
                   <div className="w-28 h-36 flex items-center justify-center">
@@ -118,50 +214,37 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
                       mode="full"
                       softShadow
                       animateIdle
+                      isExpressing={flashActive}
+                      holdingCamera
+                      cameraFlashActive={flashActive}
                       className="w-28 h-36"
                     />
                   </div>
-                  <p className="font-pixel text-sm text-slate-900 mt-1">
-                    Avatar & Profil
+                  <p className="font-pixel text-sm text-slate-900 mt-0.5 truncate w-full">
+                    {displayName}
                   </p>
-                  <p className="text-[10px] font-bold text-slate-500 leading-snug mt-0.5">
-                    Kustomisasi wajah, outfit & jadikan icon.
+                  <p className="text-[10px] font-bold text-slate-500 leading-snug">
+                    Klik untuk ganti gaya
                   </p>
                 </div>
 
-                <div className="space-y-1.5">
-                  <div className="w-full py-2 rounded-xl bg-[#377EC0] text-white text-[10px] font-extrabold text-center">
-                    Edit Karakter
+                <div className="space-y-1">
+                  <div className="w-full py-1.5 rounded-xl bg-[#377EC0] text-white text-[10px] font-extrabold text-center">
+                    Edit Avatar
                   </div>
                   <p className="text-[9px] text-center text-[#12BAAA] font-extrabold">
                     {isFrozen ? `Streak ${streakDays}d (Beku)` : `Streak ${streakDays}d Menyala`}
                   </p>
                 </div>
-              </button>
+              </div>
 
-              {/* Floating Mobile Avatar Badge */}
-              <button
-                type="button"
-                onClick={onOpenProfile}
-                aria-label="Buka halaman kustomisasi avatar profil"
-                className="sm:hidden absolute left-2 bottom-4 z-40 group cursor-pointer hover:scale-105 transition-transform"
-              >
-                <ChibiAvatar
-                  config={avatar}
-                  mode="full"
-                  softShadow
-                  animateIdle
-                  className="w-28 h-36"
-                />
-              </button>
-
-              {/* PHONE 2 (Center): Winding Quest & Adventure Path */}
+              {/* PHONE 2 (Layer Center, z-20 — Winding Quest & Adventure Path) */}
               <button
                 type="button"
                 onClick={onOpenGame}
-                className="relative w-[210px] sm:w-[220px] h-[360px] sm:h-[385px] bg-white rounded-[34px] p-2.5 shadow-2xl shadow-[#377EC0]/20 border border-[#9FD2D6]/70 z-20 hover:-translate-y-1.5 transition-transform duration-300 cursor-pointer text-left flex flex-col"
+                className="relative z-20 w-[196px] sm:w-[208px] h-[348px] sm:h-[372px] bg-white rounded-[32px] p-2.5 shadow-2xl shadow-[#377EC0]/22 border border-[#9FD2D6]/80 hover:z-40 hover:-translate-y-2 transition-all duration-300 cursor-pointer text-left flex flex-col"
               >
-                <div className="flex-1 rounded-[26px] overflow-hidden bg-gradient-to-b from-[#9FD2D6] via-[#E8F5FA] to-[#12BAAA]/35 relative p-3 flex flex-col justify-between">
+                <div className="flex-1 rounded-[24px] overflow-hidden bg-gradient-to-b from-[#9FD2D6] via-[#E8F5FA] to-[#12BAAA]/35 relative p-3 flex flex-col justify-between">
                   <div className="flex items-center justify-between">
                     <span
                       className={`px-2.5 py-1 rounded-full bg-white text-[10px] font-extrabold shadow-sm tabular-nums flex items-center gap-1 ${
@@ -213,13 +296,13 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
                 </div>
               </button>
 
-              {/* PHONE 3 (Right-Front): Nearest Venue & Google Maps */}
+              {/* PHONE 3 (Layer Front-Right, z-30 — Nearest Venue & Google Maps) */}
               <button
                 type="button"
                 onClick={onExploreMap}
-                className="hidden sm:flex flex-col justify-between text-left w-[185px] h-[325px] bg-white rounded-[30px] p-2.5 shadow-2xl shadow-[#377EC0]/20 border border-[#9FD2D6]/60 rotate-6 translate-x-36 translate-y-6 hover:translate-y-4 transition-transform duration-300 z-30 cursor-pointer"
+                className="hidden sm:flex flex-col justify-between text-left absolute right-0 bottom-3 w-[168px] h-[304px] bg-white rounded-[28px] p-2.5 shadow-2xl shadow-[#377EC0]/20 border border-[#9FD2D6]/70 rotate-6 z-30 hover:z-40 hover:-translate-y-2 transition-all duration-300 cursor-pointer"
               >
-                <div className="flex-1 rounded-[22px] bg-[#E8F5FA] relative overflow-hidden p-3 flex flex-col justify-between">
+                <div className="flex-1 rounded-[20px] bg-[#E8F5FA] relative overflow-hidden p-3 flex flex-col justify-between">
                   <div className="flex items-center justify-between">
                     <span className="font-pixel text-xs text-slate-900">
                       Google Maps
@@ -227,7 +310,7 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
                     <MapPin className="w-3.5 h-3.5 text-[#F04F52]" />
                   </div>
 
-                  <svg viewBox="0 0 140 110" className="w-full h-28" aria-hidden="true">
+                  <svg viewBox="0 0 140 110" className="w-full h-24" aria-hidden="true">
                     <path d="M0 30 L140 50" stroke="#FFF" strokeWidth="10" />
                     <path d="M50 0 L70 110" stroke="#FFF" strokeWidth="10" />
                     <path d="M0 80 Q70 65 140 85" stroke="#9FD2D6" strokeWidth="12" fill="none" />
@@ -237,8 +320,8 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
                     <circle cx="110" cy="40" r="8" fill="#F7891F" />
                   </svg>
 
-                  <div className="bg-white rounded-2xl p-2.5 shadow-sm border border-[#9FD2D6]/50 space-y-1">
-                    <p className="text-[9px] font-extrabold text-[#377EC0] uppercase">
+                  <div className="bg-white rounded-2xl p-2 shadow-sm border border-[#9FD2D6]/50 space-y-0.5">
+                    <p className="text-[8px] font-extrabold text-[#377EC0] uppercase">
                       Event Aktif
                     </p>
                     <p className="font-pixel text-xs text-slate-900 truncate">
@@ -247,13 +330,59 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
                     <p className="text-[9px] font-bold text-slate-500 tabular-nums">
                       12 Des 2026 · Jakarta
                     </p>
-                    <div className="pt-1 flex items-center justify-between text-[10px] font-extrabold text-[#377EC0]">
+                    <div className="pt-0.5 flex items-center justify-between text-[10px] font-extrabold text-[#377EC0]">
                       <span>Buka Peta</span>
                       <ArrowRight className="w-3 h-3" />
                     </div>
                   </div>
                 </div>
               </button>
+            </div>
+
+            {/* Mobile Camera-Holding Avatar Card + Personalized Greeting Bubble (Clean below phone on small screens) */}
+            <div className="sm:hidden mt-4 bg-white/95 rounded-[26px] p-3.5 shadow-lg shadow-[#377EC0]/15 border border-[#9FD2D6] flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onOpenProfile}
+                aria-label="Buka halaman kustomisasi avatar profil"
+                className="shrink-0 cursor-pointer"
+              >
+                <ChibiAvatar
+                  config={avatar}
+                  mode="full"
+                  softShadow
+                  animateIdle
+                  isExpressing={flashActive}
+                  holdingCamera
+                  cameraFlashActive={flashActive}
+                  className="w-24 h-28"
+                />
+              </button>
+              <div className="flex-1 min-w-0 space-y-1.5">
+                <div className="bg-[#E8F5FA] rounded-2xl px-3 py-2 border border-[#9FD2D6] bubble-pop">
+                  <p className="text-xs font-extrabold text-[#377EC0] flex items-center gap-1 truncate">
+                    <Camera className="w-3.5 h-3.5 text-[#F7891F] shrink-0" />
+                    {speechHeadline}
+                  </p>
+                  <p className="text-[11px] font-bold text-slate-600">{speechSub}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={triggerPhotoSnap}
+                    className="px-2.5 py-1.5 rounded-xl bg-[#FBDF54] text-slate-900 text-[11px] font-extrabold cursor-pointer"
+                  >
+                    Cekrek Ulang
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onOpenProfile}
+                    className="px-2.5 py-1.5 rounded-xl bg-[#377EC0] text-white text-[11px] font-extrabold cursor-pointer"
+                  >
+                    Edit Profil
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

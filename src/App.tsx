@@ -542,6 +542,7 @@ export default function App() {
             {/* 2. HERO SHOWCASE */}
             <HeroShowcase
               avatar={avatar}
+              userName={currentUser?.name ?? null}
               isFrozen={streak.isFrozen}
               onExploreMap={() => scrollToSection('peta-event')}
               onOpenAuth={openAuth}

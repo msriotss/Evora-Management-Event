@@ -7,6 +7,8 @@ interface ChibiAvatarProps {
   softShadow?: boolean;
   animateIdle?: boolean;
   isExpressing?: boolean;
+  holdingCamera?: boolean;
+  cameraFlashActive?: boolean;
   className?: string;
   title?: string;
 }
@@ -29,6 +31,8 @@ export const ChibiAvatar = forwardRef<SVGSVGElement, ChibiAvatarProps>(
       softShadow = true,
       animateIdle = false,
       isExpressing = false,
+      holdingCamera = false,
+      cameraFlashActive = false,
       className = 'w-40 h-52',
       title,
     },
@@ -714,22 +718,24 @@ export const ChibiAvatar = forwardRef<SVGSVGElement, ChibiAvatarProps>(
             </g>
           )}
 
-          {/* Arms & Cute Round Hands (Right arm waves cheerfully when expressing!) */}
-          <g>
-            <path d="M84 176 L58 214" stroke={config.jacketStyle !== 'none' ? config.jacketColor : config.shirtColor} strokeWidth="18" strokeLinecap="round" />
-            <circle cx="55" cy="218" r="10" fill={config.skinColor} stroke={skinShade} strokeWidth="1.5" />
-            {isExpressing ? (
-              <g>
-                <path d="M156 176 L190 150" stroke={config.jacketStyle !== 'none' ? config.jacketColor : config.shirtColor} strokeWidth="18" strokeLinecap="round" />
-                <circle cx="195" cy="146" r="10" fill={config.skinColor} stroke={skinShade} strokeWidth="1.5" />
-              </g>
-            ) : (
-              <g>
-                <path d="M156 176 L182 214" stroke={config.jacketStyle !== 'none' ? config.jacketColor : config.shirtColor} strokeWidth="18" strokeLinecap="round" />
-                <circle cx="185" cy="218" r="10" fill={config.skinColor} stroke={skinShade} strokeWidth="1.5" />
-              </g>
-            )}
-          </g>
+          {/* Arms & Cute Round Hands */}
+          {!holdingCamera && (
+            <g>
+              <path d="M84 176 L58 214" stroke={config.jacketStyle !== 'none' ? config.jacketColor : config.shirtColor} strokeWidth="18" strokeLinecap="round" />
+              <circle cx="55" cy="218" r="10" fill={config.skinColor} stroke={skinShade} strokeWidth="1.5" />
+              {isExpressing ? (
+                <g>
+                  <path d="M156 176 L190 150" stroke={config.jacketStyle !== 'none' ? config.jacketColor : config.shirtColor} strokeWidth="18" strokeLinecap="round" />
+                  <circle cx="195" cy="146" r="10" fill={config.skinColor} stroke={skinShade} strokeWidth="1.5" />
+                </g>
+              ) : (
+                <g>
+                  <path d="M156 176 L182 214" stroke={config.jacketStyle !== 'none' ? config.jacketColor : config.shirtColor} strokeWidth="18" strokeLinecap="round" />
+                  <circle cx="185" cy="218" r="10" fill={config.skinColor} stroke={skinShade} strokeWidth="1.5" />
+                </g>
+              )}
+            </g>
+          )}
 
           {/* Torso / Shirt */}
           <path
@@ -834,6 +840,61 @@ export const ChibiAvatar = forwardRef<SVGSVGElement, ChibiAvatarProps>(
 
           {/* Neck */}
           <rect x="109" y="156" width="22" height="18" rx="8" fill={skinShade} />
+
+          {/* Bent Arms & Cute Retro EVORA Camera (rendered over torso when holdingCamera is true) */}
+          {holdingCamera && (
+            <g>
+              {/* Bent arms gripping camera sides */}
+              <path
+                d="M84 176 Q66 196 86 202"
+                fill="none"
+                stroke={config.jacketStyle !== 'none' ? config.jacketColor : config.shirtColor}
+                strokeWidth="16"
+                strokeLinecap="round"
+              />
+              <path
+                d="M156 176 Q174 196 154 202"
+                fill="none"
+                stroke={config.jacketStyle !== 'none' ? config.jacketColor : config.shirtColor}
+                strokeWidth="16"
+                strokeLinecap="round"
+              />
+
+              {/* Cute Camera Body */}
+              <g transform="translate(0, -2)">
+                {/* Top Viewfinder & Shutter */}
+                <rect x="108" y="176" width="24" height="8" rx="3" fill="#5460AC" stroke="#1E3A8A" strokeWidth="1.6" />
+                <rect x="139" y="177" width="9" height="5" rx="2" fill="#F04F52" />
+
+                {/* Main Camera Body */}
+                <rect x="90" y="182" width="60" height="36" rx="9" fill="#377EC0" stroke="#1E3A8A" strokeWidth="2" />
+                <rect x="92" y="196" width="56" height="8" fill="#9FD2D6" opacity="0.9" />
+
+                {/* Flash Lamp */}
+                <rect
+                  x="96"
+                  y="186"
+                  width="12"
+                  height="8"
+                  rx="2.5"
+                  fill={cameraFlashActive ? '#FFFFFF' : '#FBDF54'}
+                  stroke="#F7891F"
+                  strokeWidth="1.2"
+                />
+
+                {/* Camera Lens */}
+                <circle cx="122" cy="200" r="14" fill="#FFFFFF" stroke="#1E3A8A" strokeWidth="2" />
+                <circle cx="122" cy="200" r="10.5" fill="#1E293B" />
+                <circle cx="122" cy="200" r="6" fill="#377EC0" />
+                <circle cx="119" cy="197" r="2.6" fill="#FFFFFF" opacity="0.9" />
+                <circle cx="125" cy="203" r="1.4" fill="#9FD2D6" opacity="0.85" />
+              </g>
+
+              {/* Chibi Hands gripping left & right of camera */}
+              <circle cx="88" cy="201" r="9.5" fill={config.skinColor} stroke={skinShade} strokeWidth="1.6" />
+              <circle cx="152" cy="201" r="9.5" fill={config.skinColor} stroke={skinShade} strokeWidth="1.6" />
+            </g>
+          )}
         </g>
       );
     };
@@ -896,6 +957,20 @@ export const ChibiAvatar = forwardRef<SVGSVGElement, ChibiAvatarProps>(
             <g>
               <polygon points="36,78 40,86 48,88 40,91 36,99 32,91 24,88 32,86" fill="#FBDF54" />
               <polygon points="204,70 207,76 213,78 207,80 204,86 201,80 195,78 201,76" fill="#12BAAA" />
+            </g>
+          )}
+          {/* Camera Flash Starburst */}
+          {holdingCamera && cameraFlashActive && mode === 'full' && (
+            <g className="camera-flash-burst" style={{ transformOrigin: '102px 188px' }}>
+              <circle cx="102" cy="188" r="46" fill="#FFFFFF" opacity="0.72" />
+              <circle cx="102" cy="188" r="28" fill="#FBDF54" opacity="0.85" />
+              <polygon
+                points="102,132 110,174 152,188 110,200 102,244 94,200 52,188 94,174"
+                fill="#FFFFFF"
+                stroke="#FBDF54"
+                strokeWidth="2"
+              />
+              <circle cx="102" cy="188" r="10" fill="#FFFFFF" />
             </g>
           )}
         </g>
