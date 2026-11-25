@@ -54,11 +54,17 @@ export const StreakTracker: React.FC<StreakTrackerProps> = ({
   const daysInMonth = Array.from({ length: 30 }, (_, i) => i + 1);
 
   return (
-    <section id="streak-panitia" className="py-10 md:py-14">
+    <section id="streak-panitia" className="py-8 md:py-10">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           {/* LEFT: TikTok-Style Monthly Panitia Streak Card */}
-          <div className="lg:col-span-7 bg-white rounded-[32px] p-6 sm:p-8 shadow-xl shadow-[#377EC0]/10 border border-[#9FD2D6]/50 flex flex-col justify-between gap-6">
+          <div
+            className={`lg:col-span-7 bg-white rounded-[32px] p-6 sm:p-8 border flex flex-col justify-between gap-6 transition-all duration-700 ease-in-out ${
+              streak.isFrozen
+                ? 'border-[#377EC0]/50 shadow-xl shadow-[#377EC0]/20 ring-2 ring-[#9FD2D6]/50'
+                : 'border-[#9FD2D6]/50 shadow-xl shadow-[#377EC0]/10'
+            }`}
+          >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <StreakFlameBadge isFrozen={streak.isFrozen} days={streak.currentDays} size="md" />
@@ -68,15 +74,15 @@ export const StreakTracker: React.FC<StreakTrackerProps> = ({
                       Streak Panitia Bulanan
                     </p>
                     <span
-                      className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold inline-flex items-center gap-1 ${
+                      className={`px-2.5 py-0.5 rounded-lg text-[10px] font-extrabold inline-flex items-center gap-1 transition-all duration-500 ${
                         streak.isFrozen
-                          ? 'bg-[#E8F5FA] text-[#377EC0] border border-[#9FD2D6]'
+                          ? 'bg-[#E8F5FA] text-[#377EC0] border border-[#377EC0]/40 shadow-sm shadow-[#377EC0]/20'
                           : 'bg-[#FFF4E5] text-[#F7891F] border border-[#FBDF54]'
                       }`}
                     >
                       {streak.isFrozen ? (
                         <>
-                          <Snowflake className="w-3 h-3" /> Api Beku
+                          <Snowflake className="w-3 h-3 animate-spin" style={{ animationDuration: '6s' }} /> Api Beku
                         </>
                       ) : (
                         <>
@@ -85,7 +91,7 @@ export const StreakTracker: React.FC<StreakTrackerProps> = ({
                       )}
                     </span>
                   </div>
-                  <h2 className="font-pixel text-2xl sm:text-3xl text-slate-900 leading-tight mt-0.5">
+                  <h2 className="font-pixel text-2xl sm:text-3xl text-slate-900 leading-tight mt-0.5 transition-colors duration-500">
                     {streak.isFrozen
                       ? `${streak.currentDays} Hari Dibekukan (Aman)`
                       : `${streak.currentDays} Hari Api Menyala!`}
@@ -107,7 +113,7 @@ export const StreakTracker: React.FC<StreakTrackerProps> = ({
                 <button
                   type="button"
                   onClick={onToggleFreeze}
-                  className={`px-3.5 py-2.5 rounded-2xl text-xs font-extrabold border transition-colors whitespace-nowrap shrink-0 cursor-pointer inline-flex items-center gap-1.5 ${
+                  className={`px-3.5 py-2.5 rounded-2xl text-xs font-extrabold border transition-all duration-500 whitespace-nowrap shrink-0 cursor-pointer inline-flex items-center gap-1.5 ${
                     streak.isFrozen
                       ? 'bg-[#FFF4E5] hover:bg-[#FBDF54]/40 text-[#F7891F] border-[#FBDF54]'
                       : 'bg-[#E8F5FA] hover:bg-[#9FD2D6]/50 text-[#377EC0] border-[#9FD2D6]'
@@ -128,7 +134,7 @@ export const StreakTracker: React.FC<StreakTrackerProps> = ({
                   onClick={onCreateEventClick}
                   className="px-4 py-2.5 rounded-2xl bg-[#377EC0] hover:bg-[#5460AC] text-white text-xs font-extrabold shadow-md shadow-[#377EC0]/20 whitespace-nowrap shrink-0 cursor-pointer transition-colors"
                 >
-                  + Tambah Event
+                  + Ikut / Buat Event Panitia
                 </button>
               </div>
             </div>

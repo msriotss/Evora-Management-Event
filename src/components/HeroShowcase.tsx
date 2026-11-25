@@ -27,11 +27,11 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
   monthlyHosted,
 }) => {
   return (
-    <section className="pt-8 pb-10 md:pt-12 md:pb-16 relative overflow-hidden">
+    <section className="pt-6 pb-8 md:pt-10 md:pb-12 relative overflow-hidden">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
           {/* LEFT: Bold Pixel + Editorial Value Proposition */}
-          <div className="lg:col-span-6 space-y-6 text-center lg:text-left">
+          <div className="lg:col-span-6 space-y-5 text-center lg:text-left">
             <div className="inline-flex items-center gap-2 text-xs font-extrabold tracking-widest uppercase text-[#377EC0]">
               {isFrozen ? (
                 <Snowflake className="w-4 h-4 text-[#377EC0]" />
@@ -43,12 +43,12 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
               </span>
             </div>
 
-            <h1 className="font-pixel text-4xl sm:text-5xl lg:text-[54px] text-slate-900 tracking-tight leading-[1.08] text-balance">
+            <h1 className="font-pixel hero-text-stroke text-4xl sm:text-5xl lg:text-[54px] text-[#1E3A8A] tracking-tight leading-[1.1] text-balance">
               Temukan event seru, pantau jadwal, & kejar streak panitiamu!
             </h1>
 
             <p className="text-sm sm:text-base font-bold text-slate-600 leading-relaxed max-w-xl mx-auto lg:mx-0">
-              Eksplorasi lokasi konser, festival, dan workshop di Google Maps interaktif, atur avatar panitia kustommu, dan raih streak bulanan ala TikTok.
+              Eksplorasi lokasi konser, festival, dan workshop di Google Maps secara real-time, atur avatar panitia kustommu, dan raih streak bulanan ala TikTok.
             </p>
 
             {/* Primary + Secondary Actions */}
@@ -84,7 +84,7 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 text-xs font-bold text-slate-500 pt-1">
               <span className="tabular-nums">{publishedCount} Event Aktif</span>
               <span aria-hidden="true">·</span>
-              <span>Google Maps Lokasi</span>
+              <span>Google Maps Real-time</span>
               <span aria-hidden="true">·</span>
               <button
                 type="button"
@@ -96,16 +96,16 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
             </div>
           </div>
 
-          {/* RIGHT: 3-Phone Illustrated Showcase + Sticker-Outlined Chibi Avatar */}
+          {/* RIGHT: 3-Phone Illustrated Showcase + Clean Chibi Avatar */}
           <div className="lg:col-span-6 relative">
-            <div className="relative mx-auto max-w-[540px] h-[390px] sm:h-[440px] flex items-center justify-center">
+            <div className="relative mx-auto max-w-[540px] h-[380px] sm:h-[420px] flex items-center justify-center">
               {/* Soft Sky & Meadow Horizon */}
               <div
                 className="absolute inset-x-0 bottom-0 h-28 rounded-[36px] bg-gradient-to-t from-[#9FD2D6]/60 via-[#E8F5FA]/50 to-transparent pointer-events-none"
                 aria-hidden="true"
               />
 
-              {/* PHONE 1 (Left-Back): Profile Avatar Sticker & Login */}
+              {/* PHONE 1 (Left-Back): Profile Avatar & Login */}
               <button
                 type="button"
                 onClick={onOpenProfile}
@@ -116,7 +116,7 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
                     <ChibiAvatar
                       config={avatar}
                       mode="full"
-                      stickerEffect
+                      softShadow
                       className="w-28 h-36"
                     />
                   </div>
@@ -138,7 +138,7 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
                 </div>
               </button>
 
-              {/* Floating Mobile Sticker Avatar Badge (visible on mobile too, bottom-left of Phone 2) */}
+              {/* Floating Mobile Avatar Badge */}
               <button
                 type="button"
                 onClick={onOpenProfile}
@@ -148,7 +148,7 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
                 <ChibiAvatar
                   config={avatar}
                   mode="full"
-                  stickerEffect
+                  softShadow
                   className="w-28 h-36"
                 />
               </button>

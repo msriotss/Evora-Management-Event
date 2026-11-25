@@ -20,6 +20,7 @@ import { StreakTracker } from './components/StreakTracker';
 import { EventQuestGame } from './components/EventQuestGame';
 import { ChibiAvatar } from './components/ChibiAvatar';
 import { ProfilePage } from './components/ProfilePage';
+import { AppRoadmapPath } from './components/AppRoadmapPath';
 import { INITIAL_AVATAR, INITIAL_EVENTS, INITIAL_ORDERS, INITIAL_STREAK } from './data/initialData';
 import { AvatarConfig, EventItem, StreakState, TicketOrder, UserAccount } from './types/evora';
 
@@ -30,6 +31,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
 
   const [activePage, setActivePage] = useState<'home' | 'profile'>('home');
+  const [joinedPanitiaEventIds, setJoinedPanitiaEventIds] = useState<string[]>([]);
   const [avatar, setAvatar] = useState<AvatarConfig>(() => {
     try {
       const saved = localStorage.getItem('evora_avatar_v1');
@@ -137,6 +139,20 @@ export default function App() {
         activeDaysInMonth: hasToday ? prev.activeDaysInMonth : [...prev.activeDaysInMonth, 25],
       };
     });
+  };
+
+  const handleJoinEventAsPanitia = (ev: EventItem) => {
+    if (joinedPanitiaEventIds.includes(ev.id)) return;
+    setJoinedPanitiaEventIds((prev) => [...prev, ev.id]);
+    bumpTodayStreak(1, 0);
+    setStreak((prev) => ({
+      ...prev,
+      isFrozen: false,
+      completedDailyGoals: prev.completedDailyGoals.includes('goal-panitia')
+        ? prev.completedDailyGoals
+        : [...prev.completedDailyGoals, 'goal-panitia'],
+    }));
+    showToast(`Berhasil gabung tim panitia "${ev.title}"! Streak panitia +1 & api menyala.`);
   };
 
   const handleAuthenticated = (user: UserAccount) => {
@@ -452,21 +468,8 @@ export default function App() {
           />
         ) : (
           <>
-            {/* 1. HERO SHOWCASE */}
-            <HeroShowcase
-              avatar={avatar}
-              isFrozen={streak.isFrozen}
-              onExploreMap={() => scrollToSection('peta-event')}
-              onOpenAuth={openAuth}
-              onOpenGame={() => setGameOpen(true)}
-              onOpenProfile={openProfilePage}
-              publishedCount={publishedCount}
-              streakDays={streak.currentDays}
-              monthlyHosted={streak.monthlyEventsHosted}
-            />
-
-            {/* 2. ACTIVE WORKSPACE (WHEN LOGGED IN) */}
-            {currentUser && (
+            {/* 1. DASHBOARD AWAL DI ATAS */}
+            {currentUser ? (
               <RoleDashboards
                 currentUser={currentUser}
                 events={events}
@@ -486,9 +489,80 @@ export default function App() {
                 onSubmitFeedback={handleSubmitFeedback}
                 onGoToMap={() => scrollToSection('peta-event')}
               />
+            ) : (
+              <section id="workspace" className="pt-5 pb-2">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                  <div className="bg-white/90 backdrop-blur-md rounded-[26px] p-4 sm:px-6 sm:py-4 border border-[#9FD2D6]/70 shadow-lg shadow-[#377EC0]/10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3.5">
+                      <button
+                        type="button"
+                        onClick={openProfilePage}
+                        className="w-12 h-12 rounded-2xl bg-[#E8F5FA] border border-[#9FD2D6] flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                        title="Edit Avatar Profil"
+                      >
+                        <ChibiAvatar config={avatar} mode="head" softShadow={false} className="w-11 h-11" />
+                      </button>
+                      <div>
+                        <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#377EC0]">
+                          Dashboard Awal EVORA
+                        </p>
+                        <p className="text-xs sm:text-sm font-extrabold text-slate-800 tabular-nums">
+                          {publishedCount} Event Live · {streak.monthlyEventsHosted} Event Panitia · {orders.length} Tiket Aktif
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openAuth('login', 'peserta')}
+                        className="px-3.5 py-2 rounded-xl bg-[#FDECEC] hover:bg-[#FBD5D5] text-[#F04F52] text-xs font-extrabold cursor-pointer transition-colors"
+                      >
+                        Dashboard Peserta
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openAuth('register', 'organizer')}
+                        className="px-3.5 py-2 rounded-xl bg-[#FFF4E5] hover:bg-[#FFE8C7] text-[#F7891F] text-xs font-extrabold cursor-pointer transition-colors"
+                      >
+                        Dashboard Panitia
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openAuth('login', 'admin')}
+                        className="px-3.5 py-2 rounded-xl bg-[#E8F5FA] hover:bg-[#9FD2D6]/50 text-[#5460AC] text-xs font-extrabold cursor-pointer transition-colors"
+                      >
+                        Dashboard Admin
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </section>
             )}
 
-            {/* 3. TIKTOK-STYLE STREAK PANITIA BULANAN & MISI HARIAN */}
+            {/* 2. HERO SHOWCASE */}
+            <HeroShowcase
+              avatar={avatar}
+              isFrozen={streak.isFrozen}
+              onExploreMap={() => scrollToSection('peta-event')}
+              onOpenAuth={openAuth}
+              onOpenGame={() => setGameOpen(true)}
+              onOpenProfile={openProfilePage}
+              publishedCount={publishedCount}
+              streakDays={streak.currentDays}
+              monthlyHosted={streak.monthlyEventsHosted}
+            />
+
+            {/* 3. INTERACTIVE REAL-TIME GOOGLE MAPS & SCHEDULE EXPLORER */}
+            <InteractiveEventMap
+              events={events}
+              joinedPanitiaEventIds={joinedPanitiaEventIds}
+              onSelectEventToRegister={(ev) => setCheckoutEvent(ev)}
+              onJoinEventAsPanitia={handleJoinEventAsPanitia}
+              onBecomeOrganizer={() => openAuth('register', 'organizer')}
+            />
+
+            {/* 4. TIKTOK-STYLE STREAK PANITIA BULANAN & MISI HARIAN */}
             <StreakTracker
               streak={streak}
               onToggleGoal={handleToggleDailyGoal}
@@ -497,15 +571,8 @@ export default function App() {
               onCreateEventClick={() => openAuth('register', 'organizer')}
             />
 
-            {/* 4. INTERACTIVE GOOGLE MAPS & SCHEDULE EXPLORER */}
-            <InteractiveEventMap
-              events={events}
-              onSelectEventToRegister={(ev) => setCheckoutEvent(ev)}
-              onBecomeOrganizer={() => openAuth('register', 'organizer')}
-            />
-
         {/* 5. DAFTAR JADI PANITIA SECTION */}
-        <section id="daftar-panitia" className="py-12 md:py-16">
+        <section id="daftar-panitia" className="py-8 md:py-10">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="bg-white rounded-[32px] p-6 sm:p-10 shadow-xl shadow-[#377EC0]/10 border border-[#9FD2D6]/60 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               <div className="lg:col-span-7 space-y-4">
@@ -516,16 +583,16 @@ export default function App() {
                   Daftar jadi panitia, kumpulkan streak bulanan!
                 </h2>
                 <p className="text-sm font-bold text-slate-600 leading-relaxed max-w-xl">
-                  Tentukan titik lokasi acara di Google Maps, atur tiket dan kode promo, susun rundown serta pembicara, dan tingkatkan streak panitia setiap bulan.
+                  Tentukan titik lokasi acara di Google Maps real-time, atur tiket dan kode promo, susun rundown serta pembicara, dan tingkatkan streak panitia setiap bulan.
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                   <div className="p-4 rounded-2xl bg-[#E8F5FA] flex items-start gap-3">
                     <MapPin className="w-5 h-5 text-[#377EC0] shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-xs font-extrabold text-slate-900">Pin Google Maps</p>
+                      <p className="text-xs font-extrabold text-slate-900">Pin Google Maps Real-time</p>
                       <p className="text-[11px] font-bold text-slate-600">
-                        Peserta langsung temukan lokasi & jadwal acaramu.
+                        Peserta langsung temukan lokasi & jarak acaramu.
                       </p>
                     </div>
                   </div>
@@ -582,99 +649,13 @@ export default function App() {
           </div>
         </section>
 
-        {/* 6. ALUR KERJA SESUAI FLOWCHART */}
-        <section id="alur-kerja" className="py-12 md:py-16">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-2xl mx-auto mb-10 space-y-2">
-              <p className="text-xs font-extrabold tracking-widest uppercase text-[#377EC0]">
-                Alur Aplikasi Terpadu
-              </p>
-              <h2 className="font-pixel text-2xl sm:text-4xl text-slate-900 tracking-tight text-balance">
-                Satu akun, tiga jenis akses sesuai flowchart
-              </h2>
-              <p className="text-sm font-bold text-slate-600">
-                Klik salah satu peran di bawah untuk mencoba alur login dan dashboardnya.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {/* PESERTA */}
-              <button
-                type="button"
-                onClick={() => openAuth('login', 'peserta')}
-                className="text-left p-6 rounded-[28px] bg-[#FDECEC] hover:bg-[#FBD5D5] border border-white shadow-lg shadow-[#377EC0]/10 transition-all flex flex-col justify-between gap-5 cursor-pointer"
-              >
-                <div className="space-y-3">
-                  <RoleMascot role="peserta" className="w-11 h-11" />
-                  <div>
-                    <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#F04F52]">
-                      01. Peserta
-                    </span>
-                    <h3 className="font-pixel text-xl text-slate-900 mt-0.5">
-                      Cari Event hingga Sertifikat
-                    </h3>
-                  </div>
-                  <p className="text-xs font-bold text-slate-600 leading-relaxed">
-                    Filter event di Google Maps, pilih tiket & metode bayar, terima e-tiket QR dan pengingat H-1, check-in, lalu isi feedback & unduh sertifikat.
-                  </p>
-                </div>
-                <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#F04F52]">
-                  Masuk sebagai Peserta <ArrowRight className="w-3.5 h-3.5" />
-                </span>
-              </button>
-
-              {/* ORGANIZER / PANITIA */}
-              <button
-                type="button"
-                onClick={() => openAuth('register', 'organizer')}
-                className="text-left p-6 rounded-[28px] bg-[#FFF4E5] hover:bg-[#FFE8C7] border border-white shadow-lg shadow-[#377EC0]/10 transition-all flex flex-col justify-between gap-5 cursor-pointer"
-              >
-                <div className="space-y-3">
-                  <RoleMascot role="organizer" className="w-11 h-11" />
-                  <div>
-                    <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#F7891F]">
-                      02. Panitia (Organizer)
-                    </span>
-                    <h3 className="font-pixel text-xl text-slate-900 mt-0.5">
-                      Buat Event & Streak Bulanan
-                    </h3>
-                  </div>
-                  <p className="text-xs font-bold text-slate-600 leading-relaxed">
-                    Input detail & lokasi, atur tiket dan promo, susun rundown & pembicara, ajukan ke admin, pantau penjualan, scan QR check-in, dan buat laporan.
-                  </p>
-                </div>
-                <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#F7891F]">
-                  Daftar / Masuk Panitia <ArrowRight className="w-3.5 h-3.5" />
-                </span>
-              </button>
-
-              {/* ADMIN PLATFORM */}
-              <button
-                type="button"
-                onClick={() => openAuth('login', 'admin')}
-                className="text-left p-6 rounded-[28px] bg-[#E8F5FA] hover:bg-[#9FD2D6]/40 border border-white shadow-lg shadow-[#377EC0]/10 transition-all flex flex-col justify-between gap-5 cursor-pointer"
-              >
-                <div className="space-y-3">
-                  <RoleMascot role="admin" className="w-11 h-11" />
-                  <div>
-                    <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#5460AC]">
-                      03. Admin Platform
-                    </span>
-                    <h3 className="font-pixel text-xl text-slate-900 mt-0.5">
-                      Review & Publikasikan Event
-                    </h3>
-                  </div>
-                  <p className="text-xs font-bold text-slate-600 leading-relaxed">
-                    Periksa pengajuan dari panitia. Jika perlu perbaikan, kirim catatan revisi; jika disetujui, publikasikan langsung ke Google Maps & katalog peserta.
-                  </p>
-                </div>
-                <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#5460AC]">
-                  Masuk sebagai Admin <ArrowRight className="w-3.5 h-3.5" />
-                </span>
-              </button>
-            </div>
-          </div>
-        </section>
+        {/* 6. PETA JALAN ALUR APLIKASI (STEP-BY-STEP ROADMAP) */}
+        <AppRoadmapPath
+          onStepLogin={() => openAuth('login', 'peserta')}
+          onStepProfile={openProfilePage}
+          onStepMap={() => scrollToSection('peta-event')}
+          onStepStreak={() => scrollToSection('streak-panitia')}
+        />
           </>
         )}
       </main>

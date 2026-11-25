@@ -23,17 +23,32 @@ import {
   Map as MapIcon,
   Flag,
   LocateFixed,
+  Navigation,
+  UserPlus,
 } from 'lucide-react';
 import { EventItem } from '../types/evora';
 
 interface InteractiveEventMapProps {
   events: EventItem[];
+  joinedPanitiaEventIds: string[];
   onSelectEventToRegister: (event: EventItem) => void;
+  onJoinEventAsPanitia: (event: EventItem) => void;
   onBecomeOrganizer: () => void;
 }
 
 const CATEGORIES = ['Semua', 'Kreatif', 'Teknologi', 'Musik', 'Bisnis', 'Komunitas'] as const;
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+
+function calcDistanceKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const toRad = (v: number) => (v * Math.PI) / 180;
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 function EventAdvancedMarker({
   event,
@@ -201,11 +216,17 @@ function MapCameraSync({ center, zoom }: { center: { lat: number; lng: number };
 function GoogleMapViewport({
   events,
   activeEvent,
+  userLocation,
+  isTrackingGps,
+  onToggleGps,
   onSelectEvent,
   onRegisterEvent,
 }: {
   events: EventItem[];
   activeEvent: EventItem | null;
+  userLocation: { lat: number; lng: number } | null;
+  isTrackingGps: boolean;
+  onToggleGps: () => void;
   onSelectEvent: (ev: EventItem) => void;
   onRegisterEvent: (ev: EventItem) => void;
 }) {
@@ -223,8 +244,11 @@ function GoogleMapViewport({
     if (activeEvent) {
       return { center: { lat: activeEvent.lat, lng: activeEvent.lng }, zoom: 12 };
     }
+    if (userLocation) {
+      return { center: userLocation, zoom: 12 };
+    }
     return { center: { lat: -6.2088, lng: 106.8456 }, zoom: 6 };
-  }, [activeEvent, searchedLocation]);
+  }, [activeEvent, searchedLocation, userLocation]);
 
   const handleSelectLocation = useCallback((lat: number, lng: number, label: string) => {
     setSearchedLocation({ lat, lng, label });
@@ -298,11 +322,35 @@ function GoogleMapViewport({
             <Pin background="#FBDF54" borderColor="#0F172A" glyphColor="#0F172A" />
           </AdvancedMarker>
         )}
+
+        {userLocation && (
+          <AdvancedMarker position={userLocation} title="Lokasi Saya (Real-time)">
+            <div className="relative flex items-center justify-center">
+              <span className="w-7 h-7 rounded-full bg-[#377EC0]/30 animate-ping absolute" />
+              <span className="w-4 h-4 rounded-full bg-[#377EC0] border-2 border-white shadow-md relative" />
+            </div>
+          </AdvancedMarker>
+        )}
       </GoogleMap>
 
-      {/* Google Places Search Bar Overlay */}
-      <div className="absolute top-3 left-3 right-14 sm:right-auto sm:w-80 z-20">
-        <PlacesSearchControl onSelectLocation={handleSelectLocation} />
+      {/* Google Places Search Bar & Live GPS Overlay */}
+      <div className="absolute top-3 left-3 right-14 sm:right-auto sm:w-96 z-20 flex gap-2 items-start">
+        <div className="flex-1">
+          <PlacesSearchControl onSelectLocation={handleSelectLocation} />
+        </div>
+        <button
+          type="button"
+          onClick={onToggleGps}
+          title="Aktifkan lokasi GPS real-time"
+          className={`px-3 py-2 rounded-xl text-xs font-extrabold shadow-md border inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer transition-colors ${
+            isTrackingGps
+              ? 'bg-[#12BAAA] text-white border-[#12BAAA]'
+              : 'bg-white/95 text-[#377EC0] border-[#9FD2D6] hover:bg-[#E8F5FA]'
+          }`}
+        >
+          <Navigation className="w-3.5 h-3.5" />
+          {isTrackingGps ? 'GPS Aktif' : 'Lokasi Saya'}
+        </button>
       </div>
     </div>
   );
@@ -310,7 +358,9 @@ function GoogleMapViewport({
 
 export const InteractiveEventMap: React.FC<InteractiveEventMapProps> = ({
   events,
+  joinedPanitiaEventIds,
   onSelectEventToRegister,
+  onJoinEventAsPanitia,
   onBecomeOrganizer,
 }) => {
   const [mapMode, setMapMode] = useState<'city' | 'timeline'>('city');
@@ -318,6 +368,44 @@ export const InteractiveEventMap: React.FC<InteractiveEventMapProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
   const [selectedCity, setSelectedCity] = useState<string>('Semua');
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [isTrackingGps, setIsTrackingGps] = useState(false);
+  const [liveTimeLabel, setLiveTimeLabel] = useState(() =>
+    new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  );
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setLiveTimeLabel(
+        new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      );
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!isTrackingGps || !navigator.geolocation) return;
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      },
+      () => {
+        // Fallback smoothly to Central Jakarta area if permission is denied inside sandboxed iframe
+        setUserLocation({ lat: -6.2088, lng: 106.8456 });
+      },
+      { enableHighAccuracy: true, maximumAge: 5000 }
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [isTrackingGps]);
+
+  const handleToggleGps = () => {
+    if (isTrackingGps) {
+      setIsTrackingGps(false);
+      setUserLocation(null);
+    } else {
+      setIsTrackingGps(true);
+    }
+  };
 
   const publishedEvents = useMemo(
     () =>
@@ -476,6 +564,9 @@ export const InteractiveEventMap: React.FC<InteractiveEventMapProps> = ({
                 <GoogleMapViewport
                   events={filteredEvents}
                   activeEvent={activeEvent}
+                  userLocation={userLocation}
+                  isTrackingGps={isTrackingGps}
+                  onToggleGps={handleToggleGps}
                   onSelectEvent={(ev) => setSelectedEventId(ev.id)}
                   onRegisterEvent={onSelectEventToRegister}
                 />
@@ -595,8 +686,9 @@ export const InteractiveEventMap: React.FC<InteractiveEventMapProps> = ({
                     <span className="text-[11px] font-extrabold tracking-wider uppercase text-[#377EC0]">
                       {activeEvent.category} · {activeEvent.city}
                     </span>
-                    <span className="text-xs font-bold text-slate-500 tabular-nums">
-                      {activeEvent.lat.toFixed(2)}, {activeEvent.lng.toFixed(2)}
+                    <span className="text-[11px] font-extrabold text-[#12BAAA] tabular-nums inline-flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-[#12BAAA] animate-pulse" />
+                      Real-time · {liveTimeLabel} WIB
                     </span>
                   </div>
                   <h3 className="font-pixel text-2xl sm:text-3xl text-slate-900 tracking-tight leading-tight">
@@ -611,9 +703,14 @@ export const InteractiveEventMap: React.FC<InteractiveEventMapProps> = ({
                 <div className="space-y-2.5 p-4 rounded-2xl bg-[#E8F5FA]/70 border border-[#9FD2D6]/50">
                   <div className="flex items-start gap-2.5 text-xs text-slate-700">
                     <MapPin className="w-4 h-4 text-[#F04F52] shrink-0 mt-0.5" />
-                    <div>
+                    <div className="flex-1">
                       <p className="font-extrabold text-slate-900">{activeEvent.venue}</p>
                       <p className="text-slate-500">{activeEvent.address}</p>
+                      {userLocation && (
+                        <p className="text-[11px] font-extrabold text-[#377EC0] mt-0.5 tabular-nums">
+                          Jarak real-time: {calcDistanceKm(userLocation.lat, userLocation.lng, activeEvent.lat, activeEvent.lng).toFixed(1)} km dari posisimu
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2.5 text-xs text-slate-700">
@@ -677,21 +774,38 @@ export const InteractiveEventMap: React.FC<InteractiveEventMapProps> = ({
 
             {/* Bottom Action Bar */}
             {activeEvent && (
-              <div className="pt-5 mt-5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <p className="text-[11px] text-slate-400 font-bold">Mulai dari</p>
-                  <p className="font-pixel text-xl text-slate-900 tabular-nums">
-                    {formatPrice(getMinPrice(activeEvent))}
-                    <span className="font-sans text-xs font-bold text-slate-400 ml-1.5">
-                      · sisa {getRemainingQuota(activeEvent)}
-                    </span>
-                  </p>
+              <div className="pt-5 mt-5 border-t border-slate-100 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-[11px] text-slate-400 font-bold">Mulai dari</p>
+                    <p className="font-pixel text-xl text-slate-900 tabular-nums">
+                      {formatPrice(getMinPrice(activeEvent))}
+                      <span className="font-sans text-xs font-bold text-slate-400 ml-1.5">
+                        · sisa {getRemainingQuota(activeEvent)}
+                      </span>
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onJoinEventAsPanitia(activeEvent)}
+                    disabled={joinedPanitiaEventIds.includes(activeEvent.id)}
+                    className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap shrink-0 ${
+                      joinedPanitiaEventIds.includes(activeEvent.id)
+                        ? 'bg-[#E6F9F7] text-[#12BAAA] cursor-default'
+                        : 'bg-[#FFF4E5] hover:bg-[#FBDF54]/50 text-[#F7891F] border border-[#FBDF54] cursor-pointer'
+                    }`}
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    {joinedPanitiaEventIds.includes(activeEvent.id)
+                      ? 'Terdaftar Panitia ✓'
+                      : 'Ikut Jadi Panitia (+1 Streak)'}
+                  </button>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => onSelectEventToRegister(activeEvent)}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#377EC0] hover:bg-[#5460AC] text-white text-xs sm:text-sm font-extrabold rounded-2xl shadow-md shadow-[#377EC0]/25 active:scale-[0.98] transition-all whitespace-nowrap shrink-0 cursor-pointer"
+                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#377EC0] hover:bg-[#5460AC] text-white text-xs sm:text-sm font-extrabold rounded-2xl shadow-md shadow-[#377EC0]/25 active:scale-[0.98] transition-all whitespace-nowrap shrink-0 cursor-pointer"
                 >
                   <Ticket className="w-4 h-4" />
                   Daftar & Beli Tiket

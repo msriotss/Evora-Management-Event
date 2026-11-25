@@ -26,6 +26,19 @@
   letter-spacing: 0.01em;
 }
 
+/* Main Hero Text White Outline Stroke + Soft Drop Shadow */
+.hero-text-stroke {
+  paint-order: stroke fill;
+  -webkit-text-stroke: 7px #FFFFFF;
+  filter: drop-shadow(0 6px 14px rgba(55, 126, 192, 0.28));
+}
+
+@media (max-width: 640px) {
+  .hero-text-stroke {
+    -webkit-text-stroke: 5px #FFFFFF;
+  }
+}
+
 .phone-frame {
   box-shadow:
     0 30px 60px -15px rgba(55, 126, 192, 0.22),
@@ -41,6 +54,42 @@
   }
 }
 
+@keyframes icePulseGlow {
+  0%, 100% {
+    box-shadow:
+      0 0 14px rgba(55, 126, 192, 0.45),
+      0 0 28px rgba(159, 210, 214, 0.65);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow:
+      0 0 24px rgba(55, 126, 192, 0.75),
+      0 0 42px rgba(159, 210, 214, 0.95);
+    transform: scale(1.03);
+  }
+}
+
+@keyframes flameWarmGlow {
+  0%, 100% {
+    box-shadow:
+      0 8px 20px rgba(247, 137, 31, 0.35),
+      0 0 14px rgba(251, 223, 84, 0.55);
+  }
+  50% {
+    box-shadow:
+      0 10px 26px rgba(240, 79, 82, 0.45),
+      0 0 22px rgba(251, 223, 84, 0.8);
+  }
+}
+
+.flame-glow-frozen {
+  animation: icePulseGlow 2.4s ease-in-out infinite;
+}
+
+.flame-glow-burning {
+  animation: flameWarmGlow 2.2s ease-in-out infinite;
+}
+
 .float-a {
   animation: floatGentle 8s ease-in-out infinite;
 }
@@ -51,7 +100,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .float-a,
-  .float-b {
+  .float-b,
+  .flame-glow-frozen,
+  .flame-glow-burning {
     animation: none;
   }
 }
