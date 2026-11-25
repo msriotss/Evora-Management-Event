@@ -1,0 +1,213 @@
+import { desc, eq } from 'drizzle-orm';
+import { db } from './index.ts';
+import { emailBroadcasts, otpTokens, users } from './schema.ts';
+
+export async function getOrCreateGoogleUser(uid: string, email: string, name: string, role = 'peserta') {
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    const existingByEmail = await db.select().from(users).where(eq(users.email, cleanEmail)).limit(1);
+    if (existingByEmail[0]) {
+      const updated = await db
+        .update(users)
+        .set({
+          uid,
+          name: existingByEmail[0].name || name,
+          verified: true,
+        })
+        .where(eq(users.id, existingByEmail[0].id))
+        .returning();
+      return updated[0];
+    }
+
+    const result = await db
+      .insert(users)
+      .values({
+        uid,
+        name: name.trim() || cleanEmail.split('@')[0],
+        email: cleanEmail,
+        role,
+        verified: true,
+      })
+      .onConflictDoUpdate({
+        target: users.uid,
+        set: {
+          email: cleanEmail,
+          verified: true,
+        },
+      })
+      .returning();
+
+    return result[0];
+  } catch (error) {
+    console.error('Database query failed in getOrCreateGoogleUser:', error);
+    throw new Error('Gagal menyinkronkan akun ke database.', { cause: error });
+  }
+}
+
+export async function findUserByEmail(email: string) {
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    const rows = await db.select().from(users).where(eq(users.email, cleanEmail)).limit(1);
+    return rows[0] ?? null;
+  } catch (error) {
+    console.error('Database query failed in findUserByEmail:', error);
+    throw new Error('Gagal memeriksa data pengguna.', { cause: error });
+  }
+}
+
+export async function findUserByUid(uid: string) {
+  try {
+    const rows = await db.select().from(users).where(eq(users.uid, uid)).limit(1);
+    return rows[0] ?? null;
+  } catch (error) {
+    console.error('Database query failed in findUserByUid:', error);
+    throw new Error('Gagal mengambil profil pengguna.', { cause: error });
+  }
+}
+
+export async function upsertVerifiedEmailUser(params: {
+  uid: string;
+  name: string;
+  email: string;
+  passwordHash: string;
+  role: string;
+}) {
+  try {
+    const cleanEmail = params.email.trim().toLowerCase();
+    const existing = await db.select().from(users).where(eq(users.email, cleanEmail)).limit(1);
+    if (existing[0]) {
+      const updated = await db
+        .update(users)
+        .set({
+          name: params.name.trim(),
+          passwordHash: params.passwordHash,
+          role: params.role,
+          verified: true,
+        })
+        .where(eq(users.id, existing[0].id))
+        .returning();
+      return updated[0];
+    }
+
+    const inserted = await db
+      .insert(users)
+      .values({
+        uid: params.uid,
+        name: params.name.trim(),
+        email: cleanEmail,
+        passwordHash: params.passwordHash,
+        role: params.role,
+        verified: true,
+      })
+      .returning();
+    return inserted[0];
+  } catch (error) {
+    console.error('Database query failed in upsertVerifiedEmailUser:', error);
+    throw new Error('Gagal menyimpan akun terverifikasi.', { cause: error });
+  }
+}
+
+export async function saveUserAvatar(uid: string, avatarJson: string) {
+  try {
+    const updated = await db
+      .update(users)
+      .set({ avatarConfig: avatarJson })
+      .where(eq(users.uid, uid))
+      .returning();
+    return updated[0] ?? null;
+  } catch (error) {
+    console.error('Database query failed in saveUserAvatar:', error);
+    throw new Error('Gagal menyimpan konfigurasi avatar.', { cause: error });
+  }
+}
+
+export async function createOtpChallenge(params: {
+  email: string;
+  name: string;
+  role: string;
+  passwordHash: string;
+  otpHash: string;
+  expiresAt: Date;
+}) {
+  try {
+    const cleanEmail = params.email.trim().toLowerCase();
+    await db
+      .update(otpTokens)
+      .set({ consumed: true })
+      .where(eq(otpTokens.email, cleanEmail));
+
+    const inserted = await db
+      .insert(otpTokens)
+      .values({
+        email: cleanEmail,
+        name: params.name.trim(),
+        role: params.role,
+        passwordHash: params.passwordHash,
+        otpHash: params.otpHash,
+        attempts: 0,
+        consumed: false,
+        expiresAt: params.expiresAt,
+      })
+      .returning();
+    return inserted[0];
+  } catch (error) {
+    console.error('Database query failed in createOtpChallenge:', error);
+    throw new Error('Gagal membuat tantangan OTP.', { cause: error });
+  }
+}
+
+export async function getLatestOtpChallenge(email: string) {
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    const rows = await db
+      .select()
+      .from(otpTokens)
+      .where(eq(otpTokens.email, cleanEmail))
+      .orderBy(desc(otpTokens.id))
+      .limit(1);
+    return rows[0] ?? null;
+  } catch (error) {
+    console.error('Database query failed in getLatestOtpChallenge:', error);
+    throw new Error('Gagal mengambil kode OTP.', { cause: error });
+  }
+}
+
+export async function incrementOtpAttempt(id: number, currentAttempts: number) {
+  try {
+    await db
+      .update(otpTokens)
+      .set({ attempts: currentAttempts + 1 })
+      .where(eq(otpTokens.id, id));
+  } catch (error) {
+    console.error('Database query failed in incrementOtpAttempt:', error);
+    throw new Error('Gagal memperbarui percobaan OTP.', { cause: error });
+  }
+}
+
+export async function markOtpConsumed(id: number) {
+  try {
+    await db.update(otpTokens).set({ consumed: true }).where(eq(otpTokens.id, id));
+  } catch (error) {
+    console.error('Database query failed in markOtpConsumed:', error);
+    throw new Error('Gagal menyelesaikan verifikasi OTP.', { cause: error });
+  }
+}
+
+export async function logEmailBroadcast(params: {
+  userId?: number;
+  recipientEmail: string;
+  subject: string;
+  deliveryMode: string;
+}) {
+  try {
+    await db.insert(emailBroadcasts).values({
+      userId: params.userId,
+      recipientEmail: params.recipientEmail.trim().toLowerCase(),
+      subject: params.subject,
+      deliveryMode: params.deliveryMode,
+    });
+  } catch (error) {
+    console.error('Database query failed in logEmailBroadcast:', error);
+    throw new Error('Gagal mencatat riwayat broadcast email.', { cause: error });
+  }
+}

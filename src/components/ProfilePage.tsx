@@ -178,28 +178,80 @@ const BedroomMirrorBackdrop: React.FC = () => (
       <circle cx="51" cy="10" r="3" fill="#F04F52" opacity="0.7" />
     </g>
 
-    {/* Left: Dimensional Wooden Wardrobe (Lemari Pakaian Estetik) */}
-    <g transform="translate(12, 46)">
-      {/* Side Shadow */}
-      <rect x="6" y="4" width="90" height="190" rx="10" fill="#7C5832" opacity="0.16" />
-      <rect x="0" y="0" width="90" height="190" rx="10" fill="url(#wardrobeBody)" stroke="#C69C6D" strokeWidth="2.4" />
-      {/* Crown Molding */}
-      <rect x="-3" y="-3" width="96" height="8" rx="4" fill="#D4AE81" stroke="#B68A5A" strokeWidth="1.5" />
-      {/* Closet Interior with Shadow */}
-      <rect x="8" y="14" width="74" height="100" rx="6" fill="#DED2C1" />
-      <rect x="8" y="14" width="74" height="10" rx="4" fill="#C7B69E" opacity="0.6" />
-      <line x1="12" y1="26" x2="78" y2="26" stroke="#7A5A3A" strokeWidth="3.2" strokeLinecap="round" />
-      {/* Hanging Clothes with Highlights */}
-      <path d="M17 27 L27 27 L34 37 L29 41 L27 37 L27 68 L17 68 L17 37 L15 41 L10 37 Z" fill="#377EC0" />
-      <path d="M39 27 L49 27 L56 38 L51 42 L49 38 L49 72 L39 72 L39 38 L37 42 L32 38 Z" fill="#FBDF54" />
-      <path d="M60 27 L70 27 L77 37 L72 41 L70 37 L70 65 L60 65 L60 37 L58 41 L53 37 Z" fill="#F04F52" />
-      {/* Beveled Drawers */}
-      <rect x="8" y="122" width="74" height="27" rx="5" fill="#F5E7D3" stroke="#C9A276" strokeWidth="1.5" />
-      <rect x="13" y="126" width="64" height="19" rx="3" fill="none" stroke="#E4C7A1" strokeWidth="1.2" />
-      <circle cx="45" cy="135.5" r="3.2" fill="#B4814E" />
-      <rect x="8" y="155" width="74" height="27" rx="5" fill="#F5E7D3" stroke="#C9A276" strokeWidth="1.5" />
-      <rect x="13" y="159" width="64" height="19" rx="3" fill="none" stroke="#E4C7A1" strokeWidth="1.2" />
-      <circle cx="45" cy="168.5" r="3.2" fill="#B4814E" />
+    {/* Left: Highly Detailed Aesthetic Oak & Cream Wardrobe (Lemari Pakaian Estetik) */}
+    <g transform="translate(8, 38)">
+      {/* Ambient Floor & Wall Drop Shadow */}
+      <ellipse cx="52" cy="200" rx="48" ry="6" fill="#7C5832" opacity="0.22" />
+      <rect x="6" y="5" width="96" height="195" rx="11" fill="#7C5832" opacity="0.14" />
+
+      {/* Main Cabinet Shell with Warm Wood Trim */}
+      <rect x="0" y="0" width="96" height="196" rx="10" fill="url(#wardrobeBody)" stroke="#B7895A" strokeWidth="2.4" />
+      {/* Carved Crown Cornice & Base Plinth */}
+      <path d="M-4 3 Q48 -5 100 3 L98 9 L-2 9 Z" fill="#D2A779" stroke="#A67849" strokeWidth="1.5" />
+      <rect x="2" y="187" width="92" height="9" rx="3" fill="#C99D6E" stroke="#A67849" strokeWidth="1.2" />
+      {/* Turned Wooden Feet */}
+      <rect x="8" y="195" width="8" height="5" rx="2" fill="#9C6B3B" />
+      <rect x="80" y="195" width="8" height="5" rx="2" fill="#9C6B3B" />
+
+      {/* Top Cubby Shelf (Folded Sweaters + Pastel Hat Box + Accessory Tray) */}
+      <rect x="7" y="14" width="82" height="32" rx="4" fill="#D5C4AE" stroke="#B6946F" strokeWidth="1.2" />
+      <rect x="7" y="14" width="82" height="5" fill="#FFF7D6" opacity="0.7" />
+      {/* Folded Knitwear Stack */}
+      <rect x="12" y="34" width="22" height="5" rx="2.5" fill="#9FD2D6" stroke="#377EC0" strokeWidth="0.6" />
+      <rect x="13" y="28" width="20" height="5" rx="2.5" fill="#FBDF54" stroke="#D97706" strokeWidth="0.6" />
+      <rect x="15" y="22" width="16" height="5" rx="2.5" fill="#FFFFFF" stroke="#9FD2D6" strokeWidth="0.6" />
+      {/* Pastel Hat Box & Ribbon */}
+      <rect x="40" y="26" width="22" height="16" rx="3" fill="#FDE8EC" stroke="#F48FB1" strokeWidth="1" />
+      <rect x="38" y="24" width="26" height="4" rx="2" fill="#F48FB1" />
+      <line x1="51" y1="24" x2="51" y2="42" stroke="#FFFFFF" strokeWidth="1.4" />
+      {/* Mini Ceramic Vase / Perfume Bottle */}
+      <rect x="69" y="29" width="12" height="13" rx="3" fill="#BAE6FD" stroke="#377EC0" strokeWidth="0.8" />
+      <rect x="72" y="25" width="6" height="4" rx="1" fill="#FBBF24" />
+
+      {/* Main Hanging Compartment with Warm LED Strip Glow */}
+      <rect x="7" y="50" width="82" height="72" rx="5" fill="#DFD1BE" stroke="#B6946F" strokeWidth="1.2" />
+      <rect x="9" y="51" width="78" height="4" rx="2" fill="#FEF3C7" opacity="0.9" />
+      {/* Brass Hanging Rod + End Brackets */}
+      <circle cx="11" cy="59" r="2.2" fill="#B45309" />
+      <circle cx="85" cy="59" r="2.2" fill="#B45309" />
+      <line x1="11" y1="59" x2="85" y2="59" stroke="#D97706" strokeWidth="2.8" strokeLinecap="round" />
+
+      {/* Wooden Hangers + Detailed Outfits */}
+      {/* Outfit 1: Varsity Blue Jacket with Cream Collar */}
+      <path d="M21 59 L21 63 M14 69 L21 63 L28 69" fill="none" stroke="#8C5D30" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M13 69 L29 69 L33 82 L28 84 L26 78 L26 105 L16 105 L16 78 L14 84 L9 82 Z" fill="#377EC0" stroke="#1E3A8A" strokeWidth="0.8" />
+      <line x1="21" y1="71" x2="21" y2="105" stroke="#FFFFFF" strokeWidth="1.2" />
+
+      {/* Outfit 2: Pastel Ribbon Uniform Dress */}
+      <path d="M44 59 L44 63 M37 69 L44 63 L51 69" fill="none" stroke="#8C5D30" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M36 69 L52 69 L55 79 L50 81 L49 77 L52 108 L36 108 L39 77 L38 81 L33 79 Z" fill="#FFFFFF" stroke="#9FD2D6" strokeWidth="0.9" />
+      <circle cx="44" cy="74" r="2.2" fill="#F04F52" />
+
+      {/* Outfit 3: Sunny Cardigan + Collar */}
+      <path d="M68 59 L68 63 M61 69 L68 63 L75 69" fill="none" stroke="#8C5D30" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M60 69 L76 69 L80 81 L75 83 L74 78 L74 103 L62 103 L62 78 L61 83 L56 81 Z" fill="#FBDF54" stroke="#D97706" strokeWidth="0.8" />
+      <circle cx="68" cy="79" r="1" fill="#92400E" />
+      <circle cx="68" cy="86" r="1" fill="#92400E" />
+
+      {/* Shoe Display Cubby */}
+      <rect x="7" y="126" width="82" height="20" rx="4" fill="#CEBCA5" stroke="#B6946F" strokeWidth="1.2" />
+      {/* Mini Blue Sneakers */}
+      <rect x="13" y="135" width="13" height="7" rx="3" fill="#377EC0" />
+      <rect x="13" y="140" width="14" height="3" rx="1.5" fill="#FFFFFF" />
+      {/* Mini Coral Boots */}
+      <path d="M39 131 L46 131 L46 138 L50 138 L50 142 L39 142 Z" fill="#F04F52" />
+      {/* Mini Mint Loafers */}
+      <rect x="64" y="136" width="14" height="6" rx="2.5" fill="#12BAAA" />
+      <rect x="66" y="135" width="6" height="2" rx="1" fill="#FBDF54" />
+
+      {/* Two Beveled Wooden Drawers with Brass Pulls */}
+      <rect x="7" y="150" width="82" height="16" rx="4" fill="#F7EAD7" stroke="#C59B6D" strokeWidth="1.4" />
+      <rect x="11" y="153" width="74" height="10" rx="2" fill="none" stroke="#E4C7A1" strokeWidth="1" />
+      <rect x="41" y="156.5" width="14" height="3" rx="1.5" fill="#D97706" />
+
+      <rect x="7" y="169" width="82" height="16" rx="4" fill="#F7EAD7" stroke="#C59B6D" strokeWidth="1.4" />
+      <rect x="11" y="172" width="74" height="10" rx="2" fill="none" stroke="#E4C7A1" strokeWidth="1" />
+      <rect x="41" y="175.5" width="14" height="3" rx="1.5" fill="#D97706" />
     </g>
 
     {/* Right: Ornate Arched Standing Mirror (Kaca Berdiri Estetik) */}
@@ -763,45 +815,71 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   />
                 </div>
 
-                {/* Animated Twin Wardrobe Doors Overlay (Open on Enter, Close on Save) */}
+                {/* Animated Twin Aesthetic Shaker Wardrobe Doors Overlay (Open on Enter, Close on Save) */}
                 <div
-                  className={`absolute inset-0 z-30 flex pointer-events-none transition-opacity duration-300 ${
-                    doorsClosed ? 'opacity-100' : 'opacity-100'
-                  }`}
+                  className="absolute inset-0 z-30 flex pointer-events-none"
                   aria-hidden={!doorsClosed}
                 >
                   {/* Left Wardrobe Door */}
                   <div
-                    className={`w-1/2 h-full bg-gradient-to-r from-[#E6C59C] to-[#F3D9B6] border-r-2 border-[#B68A5A] p-3 flex flex-col justify-between transition-transform duration-700 ease-in-out shadow-xl ${
+                    className={`relative w-1/2 h-full bg-gradient-to-br from-[#F7E7CE] via-[#EED6B5] to-[#DFBD92] border-r-2 border-[#A67849] p-3.5 flex flex-col justify-between transition-transform duration-700 ease-in-out shadow-2xl ${
                       doorsClosed ? 'translate-x-0' : '-translate-x-full'
                     }`}
                   >
-                    <div className="flex-1 rounded-2xl border-2 border-[#C99F6D] bg-[#F7E5CA]/60 grid grid-rows-3 gap-2 p-2">
-                      <div className="rounded-lg border border-[#D4AF82] bg-[#EBD0AC]/50" />
-                      <div className="rounded-lg border border-[#D4AF82] bg-[#EBD0AC]/50" />
-                      <div className="rounded-lg border border-[#D4AF82] bg-[#EBD0AC]/50" />
+                    {/* Brass Corner Hinges */}
+                    <span className="absolute left-1 top-8 w-1.5 h-6 rounded-r bg-[#D97706] shadow-xs" />
+                    <span className="absolute left-1 bottom-8 w-1.5 h-6 rounded-r bg-[#D97706] shadow-xs" />
+                    {/* Beveled Upper Pastel Glass Arch + Lower Shaker Panels */}
+                    <div className="flex-1 rounded-2xl border-2 border-[#C59B6D] bg-[#FAF0E1]/85 flex flex-col gap-2.5 p-2.5 shadow-inner">
+                      <div className="flex-1 rounded-t-3xl rounded-b-lg border-2 border-[#9FD2D6] bg-gradient-to-br from-[#E8F5FA] via-[#FFFFFF]/80 to-[#BAE6FD]/60 relative overflow-hidden">
+                        <div className="absolute inset-y-0 left-3 w-4 bg-white/45 -skew-x-12" />
+                        <div className="w-full h-full grid grid-cols-2 grid-rows-2 gap-0.5 p-1 opacity-60">
+                          <div className="border border-[#9FD2D6]/60 rounded-tl-2xl" />
+                          <div className="border border-[#9FD2D6]/60 rounded-tr-2xl" />
+                          <div className="border border-[#9FD2D6]/60" />
+                          <div className="border border-[#9FD2D6]/60" />
+                        </div>
+                      </div>
+                      <div className="h-20 rounded-xl border-2 border-[#D4AF82] bg-[#EBD0AC]/60 shadow-inner" />
                     </div>
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-10 rounded-full bg-[#FBDF54] border border-[#B45309] shadow-sm" />
+                    {/* Aesthetic Brass Handle */}
+                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1">
+                      <div className="w-3.5 h-12 rounded-full bg-gradient-to-b from-[#FDE047] via-[#F59E0B] to-[#B45309] border border-[#92400E] shadow-md" />
+                    </div>
                   </div>
 
                   {/* Right Wardrobe Door */}
                   <div
-                    className={`w-1/2 h-full bg-gradient-to-l from-[#E6C59C] to-[#F3D9B6] border-l-2 border-[#B68A5A] p-3 flex flex-col justify-between transition-transform duration-700 ease-in-out shadow-xl ${
+                    className={`relative w-1/2 h-full bg-gradient-to-bl from-[#F7E7CE] via-[#EED6B5] to-[#DFBD92] border-l-2 border-[#A67849] p-3.5 flex flex-col justify-between transition-transform duration-700 ease-in-out shadow-2xl ${
                       doorsClosed ? 'translate-x-0' : 'translate-x-full'
                     }`}
                   >
-                    <div className="flex-1 rounded-2xl border-2 border-[#C99F6D] bg-[#F7E5CA]/60 grid grid-rows-3 gap-2 p-2">
-                      <div className="rounded-lg border border-[#D4AF82] bg-[#EBD0AC]/50" />
-                      <div className="rounded-lg border border-[#D4AF82] bg-[#EBD0AC]/50" />
-                      <div className="rounded-lg border border-[#D4AF82] bg-[#EBD0AC]/50" />
+                    {/* Brass Corner Hinges */}
+                    <span className="absolute right-1 top-8 w-1.5 h-6 rounded-l bg-[#D97706] shadow-xs" />
+                    <span className="absolute right-1 bottom-8 w-1.5 h-6 rounded-l bg-[#D97706] shadow-xs" />
+                    {/* Beveled Upper Pastel Glass Arch + Lower Shaker Panels */}
+                    <div className="flex-1 rounded-2xl border-2 border-[#C59B6D] bg-[#FAF0E1]/85 flex flex-col gap-2.5 p-2.5 shadow-inner">
+                      <div className="flex-1 rounded-t-3xl rounded-b-lg border-2 border-[#9FD2D6] bg-gradient-to-br from-[#E8F5FA] via-[#FFFFFF]/80 to-[#BAE6FD]/60 relative overflow-hidden">
+                        <div className="absolute inset-y-0 left-3 w-4 bg-white/45 -skew-x-12" />
+                        <div className="w-full h-full grid grid-cols-2 grid-rows-2 gap-0.5 p-1 opacity-60">
+                          <div className="border border-[#9FD2D6]/60 rounded-tl-2xl" />
+                          <div className="border border-[#9FD2D6]/60 rounded-tr-2xl" />
+                          <div className="border border-[#9FD2D6]/60" />
+                          <div className="border border-[#9FD2D6]/60" />
+                        </div>
+                      </div>
+                      <div className="h-20 rounded-xl border-2 border-[#D4AF82] bg-[#EBD0AC]/60 shadow-inner" />
                     </div>
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-10 rounded-full bg-[#FBDF54] border border-[#B45309] shadow-sm" />
+                    {/* Aesthetic Brass Handle */}
+                    <div className="absolute left-2.5 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1">
+                      <div className="w-3.5 h-12 rounded-full bg-gradient-to-b from-[#FDE047] via-[#F59E0B] to-[#B45309] border border-[#92400E] shadow-md" />
+                    </div>
                   </div>
 
                   {/* Center Wardrobe Badge when Doors are Closed */}
                   {doorsClosed && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="px-5 py-2.5 rounded-2xl bg-white/95 border-2 border-[#377EC0] shadow-lg text-center">
+                      <div className="px-5 py-2.5 rounded-2xl bg-white/95 border-2 border-[#377EC0] shadow-xl text-center">
                         <p className="font-pixel text-base text-[#377EC0]">
                           {doorStatusText}
                         </p>

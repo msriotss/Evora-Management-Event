@@ -14,7 +14,7 @@ import { BackgroundMascots } from './components/BackgroundMascots';
 import { UserRole } from './components/EvoraMascots';
 import { HeroShowcase } from './components/HeroShowcase';
 import { InteractiveEventMap } from './components/InteractiveEventMap';
-import { AuthModal } from './components/AuthModal';
+import { AuthModal, BroadcastEmailInfo, BroadcastPreviewModal } from './components/AuthModal';
 import { PesertaFlowModal } from './components/PesertaFlowModal';
 import { RoleDashboards } from './components/RoleDashboards';
 import { StreakTracker } from './components/StreakTracker';
@@ -31,6 +31,8 @@ export default function App() {
   const [orders, setOrders] = useState<TicketOrder[]>(INITIAL_ORDERS);
   const [streak, setStreak] = useState<StreakState>(INITIAL_STREAK);
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
+  const [authToken, setAuthToken] = useState<string | null>(null);
+  const [broadcastPreview, setBroadcastPreview] = useState<BroadcastEmailInfo | null>(null);
 
   const [activePage, setActivePage] = useState<'home' | 'profile'>('home');
   const [joinedPanitiaEventIds, setJoinedPanitiaEventIds] = useState<string[]>([]);
@@ -80,6 +82,18 @@ export default function App() {
       localStorage.setItem('evora_avatar_v1', JSON.stringify(next));
     } catch {
       // ignore storage errors
+    }
+    if (authToken) {
+      fetch('/api/profile/avatar', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ avatarConfig: next }),
+      }).catch(() => {
+        // silent background sync
+      });
     }
   };
 
@@ -164,9 +178,26 @@ export default function App() {
     showToast(`Berhasil gabung tim panitia "${ev.title}"! Streak panitia +1 & api menyala.`);
   };
 
-  const handleAuthenticated = (user: UserAccount) => {
+  const handleAuthenticated = ({
+    user,
+    token,
+    avatarConfig,
+    broadcastEmail,
+  }: {
+    user: UserAccount;
+    token: string;
+    avatarConfig?: AvatarConfig | null;
+    broadcastEmail?: BroadcastEmailInfo | null;
+  }) => {
     setCurrentUser(user);
+    setAuthToken(token);
+    if (avatarConfig) {
+      setAvatar({ ...INITIAL_AVATAR, ...avatarConfig });
+    }
     setAuthModalOpen(false);
+    if (broadcastEmail) {
+      setBroadcastPreview(broadcastEmail);
+    }
     showToast(
       `Selamat datang, ${user.name}! Masuk sebagai ${
         user.role === 'peserta'
@@ -177,6 +208,30 @@ export default function App() {
       }.`
     );
     setTimeout(() => scrollToSection('workspace'), 100);
+  };
+
+  const handleSendBroadcastEmail = async () => {
+    if (!authToken) {
+      openAuth('login', 'peserta');
+      return;
+    }
+    try {
+      const res = await fetch('/api/auth/send-broadcast', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+      const data = (await res.json()) as BroadcastEmailInfo & { error?: string };
+      if (!res.ok || !data.previewHtml) {
+        showToast(data.error || 'Gagal menyiapkan broadcast email.');
+        return;
+      }
+      setBroadcastPreview(data);
+    } catch {
+      showToast('Koneksi terputus saat membuat broadcast email.');
+    }
   };
 
   const handleOrderComplete = (newOrder: TicketOrder) => {
@@ -487,6 +542,7 @@ export default function App() {
                 onSwitchRole={(role) => setCurrentUser({ ...currentUser, role })}
                 onLogout={() => {
                   setCurrentUser(null);
+                  setAuthToken(null);
                   showToast('Anda telah keluar dari akun.');
                 }}
                 onSubmitNewEvent={handleSubmitNewEvent}
@@ -497,6 +553,7 @@ export default function App() {
                 onToggleReminder={handleToggleReminder}
                 onSubmitFeedback={handleSubmitFeedback}
                 onGoToMap={() => scrollToSection('peta-event')}
+                onSendBroadcast={handleSendBroadcastEmail}
               />
             ) : (
               <section id="daftar-panitia" className="pt-5 pb-2">
@@ -744,6 +801,12 @@ export default function App() {
         initialRole={authRole}
         onClose={() => setAuthModalOpen(false)}
         onAuthenticated={handleAuthenticated}
+      />
+
+      <BroadcastPreviewModal
+        broadcast={broadcastPreview}
+        recipientEmail={currentUser?.email}
+        onClose={() => setBroadcastPreview(null)}
       />
 
       <PesertaFlowModal

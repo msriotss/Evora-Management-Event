@@ -1,0 +1,244 @@
+import nodemailer from 'nodemailer';
+
+function escapeHtml(raw: string): string {
+  return raw
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function getRoleLabel(role: string): string {
+  if (role === 'organizer') return 'Panitia Event (Organizer)';
+  if (role === 'admin') return 'Admin Platform';
+  return 'Peserta Event';
+}
+
+export function buildOtpEmailHtml(params: {
+  name: string;
+  email: string;
+  role: string;
+  otp: string;
+}): string {
+  const safeName = escapeHtml(params.name);
+  const safeEmail = escapeHtml(params.email);
+  const safeRole = escapeHtml(getRoleLabel(params.role));
+  const digits = params.otp.split('');
+
+  return `<!doctype html>
+<html lang="id">
+<head><meta charset="utf-8"><title>Kode OTP EVORA</title></head>
+<body style="margin:0;padding:24px;background-color:#E8F5FA;font-family:'Plus Jakarta Sans',Arial,sans-serif;color:#0F172A;">
+  <div style="max-width:560px;margin:0 auto;background:#FFFFFF;border-radius:28px;overflow:hidden;border:2px solid #9FD2D6;box-shadow:0 18px 40px rgba(55,126,192,0.14);">
+    <div style="background:linear-gradient(135deg,#377EC0,#5460AC);padding:28px 28px 22px;text-align:center;color:#FFFFFF;">
+      <div style="display:inline-block;padding:6px 14px;border-radius:999px;background:rgba(255,255,255,0.18);font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;">
+        EVORA · Verifikasi Keamanan Gmail
+      </div>
+      <h1 style="margin:12px 0 4px;font-size:26px;font-weight:800;letter-spacing:-0.5px;">Kode OTP Verifikasi Kamu</h1>
+      <p style="margin:0;font-size:13px;opacity:0.92;">Halo <strong>${safeName}</strong>, satu langkah lagi menuju dunia event EVORA!</p>
+    </div>
+
+    <div style="padding:28px;">
+      <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#334155;">
+        Gunakan 6 digit kode OTP di bawah ini untuk memverifikasi pendaftaran akun <strong>${safeRole}</strong> dengan email <strong>${safeEmail}</strong>:
+      </p>
+
+      <div style="background:#F4FAFC;border:2px dashed #377EC0;border-radius:20px;padding:20px 14px;text-align:center;margin:20px 0;">
+        <div style="display:inline-block;">
+          ${digits
+            .map(
+              (d) =>
+                `<span style="display:inline-block;width:40px;height:48px;line-height:48px;margin:0 4px;background:#FFFFFF;border:2px solid #9FD2D6;border-radius:12px;font-size:24px;font-weight:800;color:#1E3A8A;font-family:monospace;">${escapeHtml(d)}</span>`
+            )
+            .join('')}
+        </div>
+        <p style="margin:12px 0 0;font-size:12px;font-weight:700;color:#F7891F;">
+          Berlaku selama 10 menit · Jangan bagikan kode ini kepada siapa pun
+        </p>
+      </div>
+
+      <p style="margin:0;font-size:12px;line-height:1.6;color:#64748B;">
+        Setelah kode dimasukkan, kami juga akan mengirimkan <strong>Welcome Broadcast EVORA</strong> berisi jadwal event seru & kode promo khusus ke Gmail kamu.
+      </p>
+    </div>
+
+    <div style="background:#F8FAFC;padding:16px 28px;border-top:1px solid #E2E8F0;text-align:center;font-size:11px;color:#64748B;">
+      <strong>EVORA</strong> · Karya Muhammad Satrio Wibisono · CS WA 089603963329 · @msriotsss
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+export function buildWelcomeBroadcastEmailHtml(params: {
+  name: string;
+  email: string;
+  role: string;
+  appUrl?: string;
+}): string {
+  const safeName = escapeHtml(params.name);
+  const safeRole = escapeHtml(getRoleLabel(params.role));
+  const baseUrl = escapeHtml(params.appUrl || 'https://evora.app');
+
+  return `<!doctype html>
+<html lang="id">
+<head><meta charset="utf-8"><title>Selamat Datang di EVORA — Broadcast Event Seru!</title></head>
+<body style="margin:0;padding:24px;background-color:#E8F5FA;font-family:'Plus Jakarta Sans',Arial,sans-serif;color:#0F172A;">
+  <div style="max-width:600px;margin:0 auto;background:#FFFFFF;border-radius:30px;overflow:hidden;border:2px solid #9FD2D6;box-shadow:0 20px 44px rgba(55,126,192,0.16);">
+    <!-- Festive Header -->
+    <div style="background:linear-gradient(135deg,#377EC0 0%,#5460AC 60%,#12BAAA 100%);padding:32px 28px;text-align:center;color:#FFFFFF;">
+      <div style="display:inline-block;padding:6px 14px;border-radius:999px;background:#FBDF54;color:#0F172A;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;">
+        EVORA OFFICIAL BROADCAST · AKUN AKTIF
+      </div>
+      <h1 style="margin:14px 0 6px;font-size:28px;font-weight:800;line-height:1.2;">
+        Yeay, Selamat Bergabung ${safeName}!
+      </h1>
+      <p style="margin:0;font-size:14px;opacity:0.95;">
+        Akun <strong>${safeRole}</strong> kamu sudah resmi terverifikasi dan siap berpetualang di EVORA.
+      </p>
+    </div>
+
+    <!-- Intro + Quick Highlights -->
+    <div style="padding:26px 28px 10px;">
+      <div style="background:#FFF4E5;border:1.5px solid #FBDF54;border-radius:20px;padding:16px 18px;margin-bottom:22px;">
+        <p style="margin:0 0 6px;font-size:13px;font-weight:800;color:#B45309;">
+          🎁 Hadiah Welcome Starter Pack untuk Kamu!
+        </p>
+        <p style="margin:0;font-size:12.5px;line-height:1.6;color:#475569;">
+          Klaim diskon <strong>20%</strong> tiket event pilihan dengan kode promo <strong style="color:#F04F52;background:#FFFFFF;padding:2px 8px;border-radius:6px;border:1px solid #FDBA74;">EVORA20</strong> dan buka studio Kamar Ganti untuk mendandani avatar chibi-mu!
+        </p>
+      </div>
+
+      <h2 style="margin:0 0 12px;font-size:16px;font-weight:800;color:#1E3A8A;">
+        📍 Broadcast Agenda & Spotlight Event Bulan Ini
+      </h2>
+
+      <!-- Event Card 1 -->
+      <div style="background:#F4FAFC;border:1.5px solid #9FD2D6;border-radius:18px;padding:14px 16px;margin-bottom:10px;">
+        <div style="font-size:11px;font-weight:800;color:#F04F52;text-transform:uppercase;">12 Des 2026 · Jakarta Pusat</div>
+        <div style="font-size:15px;font-weight:800;color:#0F172A;margin:3px 0;">Pastel Creative Fest 2026</div>
+        <div style="font-size:12px;color:#475569;">Area Kreatif Jakarta Pusat · Pasar kreatif, ilustrasi & sesi akustik.</div>
+      </div>
+
+      <!-- Event Card 2 -->
+      <div style="background:#F4FAFC;border:1.5px solid #9FD2D6;border-radius:18px;padding:14px 16px;margin-bottom:10px;">
+        <div style="font-size:11px;font-weight:800;color:#377EC0;text-transform:uppercase;">19 Des 2026 · Bandung</div>
+        <div style="font-size:15px;font-weight:800;color:#0F172A;margin:3px 0;">UI/UX & Product Design Summit</div>
+        <div style="font-size:12px;color:#475569;">Balai Inovasi Bandung · Workshop desain produk & networking (Kode: <strong>DESIGN15</strong>).</div>
+      </div>
+
+      <!-- Event Card 3 -->
+      <div style="background:#F4FAFC;border:1.5px solid #9FD2D6;border-radius:18px;padding:14px 16px;margin-bottom:20px;">
+        <div style="font-size:11px;font-weight:800;color:#F7891F;text-transform:uppercase;">26 Des 2026 · Jakarta Selatan</div>
+        <div style="font-size:15px;font-weight:800;color:#0F172A;margin:3px 0;">Senja Indie Music Gathering</div>
+        <div style="font-size:12px;color:#475569;">Taman Terbuka Jakarta Selatan · Piknik & pertunjukan musik indie senja.</div>
+      </div>
+
+      <h2 style="margin:0 0 10px;font-size:16px;font-weight:800;color:#1E3A8A;">
+        🚀 4 Hal Seru yang Langsung Bisa Kamu Coba:
+      </h2>
+      <table style="width:100%;border-collapse:separate;border-spacing:0 8px;font-size:12.5px;color:#334155;">
+        <tr>
+          <td style="background:#E8F5FA;padding:10px 12px;border-radius:12px;">
+            <strong>1. Rute Peta Google Maps Real-Time:</strong> Lihat rute langsung dari posisimu ke venue & buka navigasi di aplikasi Google Maps.
+          </td>
+        </tr>
+        <tr>
+          <td style="background:#E6F9F7;padding:10px 12px;border-radius:12px;">
+            <strong>2. Kamar Ganti Avatar Estetik:</strong> Racik wajah, rambut, baju, jaket & aksesoris lucu lalu simpan ke lemari!
+          </td>
+        </tr>
+        <tr>
+          <td style="background:#FFF4E5;padding:10px 12px;border-radius:12px;">
+            <strong>3. Streak Panitia Bulanan & Quest:</strong> Gabung tim panitia untuk menyalakan api streak & main mini game berburu item event.
+          </td>
+        </tr>
+        <tr>
+          <td style="background:#F5F3FF;padding:10px 12px;border-radius:12px;">
+            <strong>4. Bot AI & Customer Service:</strong> Tanya Bot AI EVORA kapan saja atau chat WA CS 089603963329.
+          </td>
+        </tr>
+      </table>
+
+      <div style="text-align:center;margin:24px 0 14px;">
+        <a href="${baseUrl}" style="display:inline-block;padding:13px 28px;border-radius:14px;background:#377EC0;color:#FFFFFF;font-size:14px;font-weight:800;text-decoration:none;box-shadow:0 8px 20px rgba(55,126,192,0.28);">
+          Buka Website EVORA Sekarang →
+        </a>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="background:#F8FAFC;padding:18px 28px;border-top:1px solid #E2E8F0;text-align:center;font-size:11.5px;color:#64748B;line-height:1.6;">
+      Dibuat oleh <strong>Muhammad Satrio Wibisono</strong> · Instagram <strong>@msriotsss</strong><br/>
+      CS WhatsApp: <strong>089603963329</strong> · Keluh Kesah & Masukan: <strong>msriotss@gmail.com</strong>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+export interface EmailSendResult {
+  delivered: boolean;
+  deliveryMode: 'smtp-gmail' | 'preview';
+  previewHtml: string;
+  notice: string;
+}
+
+export async function sendEvoraEmail(params: {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+}): Promise<EmailSendResult> {
+  const smtpUser = process.env.SMTP_USER?.trim();
+  const smtpPass = process.env.SMTP_PASS?.trim();
+  const smtpHost = process.env.SMTP_HOST?.trim() || 'smtp.gmail.com';
+  const smtpPort = Number(process.env.SMTP_PORT || 465);
+
+  if (!smtpUser || !smtpPass) {
+    return {
+      delivered: false,
+      deliveryMode: 'preview',
+      previewHtml: params.html,
+      notice:
+        'Mode Pratinjau Aktif: Tambahkan SMTP_USER & SMTP_PASS (Gmail App Password) di Settings > Secrets untuk pengiriman langsung ke kotak masuk Gmail.',
+    };
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpPort === 465,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
+    });
+
+    await transporter.sendMail({
+      from: `"EVORA Events" <${smtpUser}>`,
+      to: params.to,
+      subject: params.subject,
+      text: params.text,
+      html: params.html,
+    });
+
+    return {
+      delivered: true,
+      deliveryMode: 'smtp-gmail',
+      previewHtml: params.html,
+      notice: `Email resmi berhasil dikirim ke ${params.to}!`,
+    };
+  } catch (err) {
+    console.error('SMTP delivery failed, falling back to preview notice:', err);
+    return {
+      delivered: false,
+      deliveryMode: 'preview',
+      previewHtml: params.html,
+      notice:
+        'Pengiriman SMTP Gmail gagal (periksa SMTP_USER / App Password di Secrets). Pratinjau email tetap tersedia di layar.',
+    };
+  }
+}

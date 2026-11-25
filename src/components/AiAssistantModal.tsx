@@ -15,11 +15,85 @@ interface AiAssistantModalProps {
 }
 
 const QUICK_PROMPTS = [
-  'Cara daftar jadi panitia event?',
-  'Kenapa avatar profil masih kosong?',
-  'Event aktif di Jakarta & Bandung?',
-  'Cara kontak CS & kirim masukan?',
+  'Apa saja yang bisa dilakukan di website EVORA?',
+  'Cara daftar, login & verifikasi OTP Gmail?',
+  'Cara buka rute event ke Google Maps?',
+  'Cara atur avatar di kamar ganti & kontak CS?',
 ];
+
+function renderBoldSegments(line: string): React.ReactNode {
+  const parts = line.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+  return parts.map((part, idx) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return (
+        <strong key={idx} className="font-extrabold text-[#1E3A8A]">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return (
+        <code
+          key={idx}
+          className="px-1.5 py-0.5 rounded bg-[#E8F5FA] text-[#377EC0] font-mono text-[11px] font-bold"
+        >
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    return <React.Fragment key={idx}>{part}</React.Fragment>;
+  });
+}
+
+function FormattedBotText({ text }: { text: string }) {
+  const lines = text.split('\n');
+  return (
+    <div className="space-y-1.5">
+      {lines.map((rawLine, idx) => {
+        const line = rawLine.trim();
+        if (!line) {
+          return <div key={idx} className="h-1" />;
+        }
+
+        // Headings like ### Title or **1. Section**
+        if (line.startsWith('### ') || line.startsWith('## ')) {
+          const cleanHeading = line.replace(/^#{2,3}\s+/, '').replace(/\*\*/g, '');
+          return (
+            <p key={idx} className="font-extrabold text-[#377EC0] text-xs sm:text-sm pt-1">
+              {cleanHeading}
+            </p>
+          );
+        }
+
+        // Numbered item: 1. ...
+        const numMatch = line.match(/^(\d+\.)\s+(.*)$/);
+        if (numMatch) {
+          return (
+            <div key={idx} className="flex items-start gap-2 pl-0.5">
+              <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1 rounded-md bg-[#E8F5FA] text-[#377EC0] text-[11px] font-extrabold shrink-0 mt-0.5">
+                {numMatch[1]}
+              </span>
+              <span className="flex-1">{renderBoldSegments(numMatch[2])}</span>
+            </div>
+          );
+        }
+
+        // Bullet item: - ... or * ... or • ...
+        const bulletMatch = line.match(/^[-*•]\s+(.*)$/);
+        if (bulletMatch) {
+          return (
+            <div key={idx} className="flex items-start gap-2 pl-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#12BAAA] shrink-0 mt-2" />
+              <span className="flex-1">{renderBoldSegments(bulletMatch[1])}</span>
+            </div>
+          );
+        }
+
+        return <p key={idx}>{renderBoldSegments(line)}</p>;
+      })}
+    </div>
+  );
+}
 
 export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
   isOpen,
@@ -30,7 +104,7 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
     {
       id: 'welcome-1',
       role: 'assistant',
-      text: `Halo${userName ? ` ${userName}` : ''}! Aku Bot AI EVORA. Ada yang bisa kubantu soal event, daftar panitia, atau kustomisasi avatar?`,
+      text: `Halo${userName ? ` ${userName}` : ''}! Aku **Bot AI EVORA**. Aku siap menjelaskan secara sistematis:\n1. **Daftar Fitur & Apa yang Bisa Dilakukan** di EVORA\n2. **Cara Daftar & Verifikasi OTP Gmail** (plus Broadcast sambutan)\n3. **Panduan Rute Google Maps, Avatar & Kontak CS**\n\nKlik salah satu topik cepat di bawah atau ketik pertanyaanmu ya!`,
     },
   ]);
   const [input, setInput] = useState('');
@@ -81,7 +155,7 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
             role: 'assistant',
             text:
               data.error ||
-              'Maaf, Bot AI sedang tidak dapat merespons. Silakan cek API key atau hubungi Customer Service via WhatsApp.',
+              'Maaf, Bot AI sedang tidak dapat merespons. Silakan cek API key atau hubungi Customer Service via WhatsApp 089603963329.',
             isError: true,
           },
         ]);
@@ -134,7 +208,7 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
                 Bot AI EVORA
               </h2>
               <p className="text-[11px] font-bold text-[#E8F5FA]/90">
-                Asisten Event & Bantuan Cepat
+                Panduan Sistematis Daftar & Fitur
               </p>
             </div>
           </div>
@@ -159,7 +233,7 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold leading-relaxed ${
+                className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-xs sm:text-[13px] font-semibold leading-relaxed ${
                   msg.role === 'user'
                     ? 'bg-[#377EC0] text-white rounded-br-md'
                     : msg.isError
@@ -167,7 +241,11 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
                     : 'bg-white text-slate-800 border border-[#9FD2D6]/60 shadow-xs rounded-bl-md'
                 }`}
               >
-                {msg.text}
+                {msg.role === 'assistant' && !msg.isError ? (
+                  <FormattedBotText text={msg.text} />
+                ) : (
+                  msg.text
+                )}
               </div>
             </div>
           ))}
@@ -176,7 +254,7 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
             <div className="flex justify-start">
               <div className="bg-white border border-[#9FD2D6]/60 rounded-2xl rounded-bl-md px-3.5 py-2.5 text-xs font-bold text-[#377EC0] inline-flex items-center gap-2">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Sedang mengetik...
+                Menyusun panduan sistematis...
               </div>
             </div>
           )}
@@ -191,9 +269,9 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
                 type="button"
                 onClick={() => sendMessage(q)}
                 disabled={loading}
-                className="px-2.5 py-1 rounded-xl bg-[#E8F5FA] hover:bg-[#9FD2D6]/40 text-[#377EC0] text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer transition-colors disabled:opacity-60"
+                className="px-2.5 py-1 rounded-xl bg-[#E8F5FA] hover:bg-[#9FD2D6]/40 text-[#377EC0] text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer transition-colors disabled:opacity-60 text-left"
               >
-                <Sparkles className="w-3 h-3 text-[#F7891F]" />
+                <Sparkles className="w-3 h-3 text-[#F7891F] shrink-0" />
                 {q}
               </button>
             ))}

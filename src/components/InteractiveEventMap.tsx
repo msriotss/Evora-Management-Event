@@ -25,6 +25,11 @@ import {
   LocateFixed,
   Navigation,
   UserPlus,
+  ExternalLink,
+  Car,
+  Footprints,
+  TrainFront,
+  Loader2,
 } from 'lucide-react';
 import { EventItem } from '../types/evora';
 
@@ -36,8 +41,18 @@ interface InteractiveEventMapProps {
   onBecomeOrganizer: () => void;
 }
 
+type TravelModeChoice = 'DRIVING' | 'WALKING' | 'TRANSIT';
+
+interface RouteSummary {
+  distanceText: string;
+  durationText: string;
+  mode: TravelModeChoice;
+  originLabel: string;
+}
+
 const CATEGORIES = ['Semua', 'Kreatif', 'Teknologi', 'Musik', 'Bisnis', 'Komunitas'] as const;
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+const DEFAULT_ORIGIN = { lat: -6.1754, lng: 106.8272, label: 'Pusat Jakarta (Monas)' };
 
 function calcDistanceKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const toRad = (v: number) => (v * Math.PI) / 180;
@@ -50,16 +65,179 @@ function calcDistanceKm(lat1: number, lng1: number, lat2: number, lng2: number):
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+function formatDurationMinutes(ms: number): string {
+  const totalMin = Math.max(1, Math.round(ms / 60000));
+  if (totalMin < 60) return `${totalMin} menit`;
+  const hrs = Math.floor(totalMin / 60);
+  const rem = totalMin % 60;
+  return rem > 0 ? `${hrs} jam ${rem} mnt` : `${hrs} jam`;
+}
+
+function buildGoogleMapsDirectionsUrl(
+  destination: { lat: number; lng: number },
+  origin: { lat: number; lng: number } | null,
+  travelMode: TravelModeChoice
+): string {
+  const params = new URLSearchParams({
+    api: '1',
+    destination: `${destination.lat},${destination.lng}`,
+    travelmode: travelMode.toLowerCase(),
+  });
+  if (origin) {
+    params.set('origin', `${origin.lat},${origin.lng}`);
+  }
+  return `https://www.google.com/maps/dir/?${params.toString()}`;
+}
+
+function EventRouteLayer({
+  originLat,
+  originLng,
+  originLabel,
+  destLat,
+  destLng,
+  travelMode,
+  enabled,
+  onRouteStatus,
+}: {
+  originLat: number;
+  originLng: number;
+  originLabel: string;
+  destLat: number;
+  destLng: number;
+  travelMode: TravelModeChoice;
+  enabled: boolean;
+  onRouteStatus: (status: {
+    loading: boolean;
+    summary: RouteSummary | null;
+    error: string | null;
+  }) => void;
+}) {
+  const map = useMap();
+  const routesLib = useMapsLibrary('routes');
+  const polylinesRef = useRef<google.maps.Polyline[]>([]);
+  const onRouteStatusRef = useRef(onRouteStatus);
+  onRouteStatusRef.current = onRouteStatus;
+
+  const clearPolylines = useCallback(() => {
+    polylinesRef.current.forEach((p) => p.setMap(null));
+    polylinesRef.current = [];
+  }, []);
+
+  useEffect(() => {
+    clearPolylines();
+    if (!enabled) {
+      onRouteStatusRef.current({ loading: false, summary: null, error: null });
+      return;
+    }
+    if (!routesLib || !map) return;
+
+    let cancelled = false;
+    onRouteStatusRef.current({ loading: true, summary: null, error: null });
+
+    const sdkTravelMode =
+      travelMode === 'WALKING'
+        ? google.maps.TravelMode.WALKING
+        : travelMode === 'TRANSIT'
+        ? google.maps.TravelMode.TRANSIT
+        : google.maps.TravelMode.DRIVING;
+
+    const request: google.maps.routes.ComputeRoutesRequest = {
+      origin: { lat: originLat, lng: originLng },
+      destination: { lat: destLat, lng: destLng },
+      travelMode: sdkTravelMode,
+      fields: ['durationMillis', 'distanceMeters', 'path', 'viewport', 'localizedValues'],
+      ...(travelMode === 'TRANSIT'
+        ? { departureTime: new Date(Date.now() + 5 * 60 * 1000) }
+        : {}),
+    };
+
+    routesLib.Route.computeRoutes(request)
+      .then((response) => {
+        if (cancelled) return;
+        const route = response.routes?.[0];
+        if (!route) {
+          onRouteStatusRef.current({
+            loading: false,
+            summary: null,
+            error: 'Rute langsung tidak ditemukan untuk mode ini. Gunakan tombol Buka di Google Maps.',
+          });
+          return;
+        }
+
+        const polylines = route.createPolylines({
+          polylineOptions: {
+            strokeColor: travelMode === 'WALKING' ? '#12BAAA' : travelMode === 'TRANSIT' ? '#F7891F' : '#377EC0',
+            strokeOpacity: 0.92,
+            strokeWeight: 5,
+          },
+        });
+        polylines.forEach((p) => p.setMap(map));
+        polylinesRef.current = polylines;
+
+        if (route.viewport) {
+          map.fitBounds(route.viewport, 48);
+        }
+
+        const distanceText =
+          route.localizedValues?.distance ||
+          (route.distanceMeters ? `${(route.distanceMeters / 1000).toFixed(1)} km` : '—');
+        const durationText =
+          route.localizedValues?.duration ||
+          (route.durationMillis ? formatDurationMinutes(route.durationMillis) : '—');
+
+        onRouteStatusRef.current({
+          loading: false,
+          summary: {
+            distanceText,
+            durationText,
+            mode: travelMode,
+            originLabel,
+          },
+          error: null,
+        });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        onRouteStatusRef.current({
+          loading: false,
+          summary: null,
+          error:
+            'Rute interaktif sedang memakai estimasi jarak. Klik "Buka Rute di Google Maps" untuk navigasi turn-by-turn.',
+        });
+      });
+
+    return () => {
+      cancelled = true;
+      clearPolylines();
+    };
+  }, [
+    enabled,
+    routesLib,
+    map,
+    originLat,
+    originLng,
+    originLabel,
+    destLat,
+    destLng,
+    travelMode,
+    clearPolylines,
+  ]);
+
+  return null;
+}
+
 function EventAdvancedMarker({
   event,
   isSelected,
   onSelect,
   onRegister,
+  gmapsRouteUrl,
 }: {
   event: EventItem;
   isSelected: boolean;
   onSelect: () => void;
   onRegister: () => void;
+  gmapsRouteUrl: string;
 }) {
   const [markerRef, marker] = useAdvancedMarkerRef();
 
@@ -80,7 +258,7 @@ function EventAdvancedMarker({
       </AdvancedMarker>
 
       {isSelected && marker && (
-        <InfoWindow anchor={marker} onCloseClick={onSelect} maxWidth={230}>
+        <InfoWindow anchor={marker} onCloseClick={onSelect} maxWidth={245}>
           <div className="p-1 space-y-1.5 font-sans">
             <p className="text-[10px] font-extrabold uppercase text-[#377EC0]">
               {event.category} · {event.dateLabel}
@@ -89,13 +267,24 @@ function EventAdvancedMarker({
               {event.title}
             </p>
             <p className="text-[11px] text-slate-600">{event.venue}</p>
-            <button
-              type="button"
-              onClick={onRegister}
-              className="mt-1 w-full py-1.5 px-2.5 rounded-lg bg-[#377EC0] text-white text-[11px] font-bold cursor-pointer"
-            >
-              Daftar & Beli Tiket
-            </button>
+            <div className="flex flex-col gap-1.5 pt-1">
+              <a
+                href={gmapsRouteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-1.5 px-2.5 rounded-lg bg-[#E8F5FA] text-[#377EC0] text-[11px] font-extrabold text-center inline-flex items-center justify-center gap-1"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Buka Rute di Google Maps
+              </a>
+              <button
+                type="button"
+                onClick={onRegister}
+                className="w-full py-1.5 px-2.5 rounded-lg bg-[#377EC0] text-white text-[11px] font-bold cursor-pointer"
+              >
+                Daftar & Beli Tiket
+              </button>
+            </div>
           </div>
         </InfoWindow>
       )}
@@ -175,7 +364,7 @@ function PlacesSearchControl({
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Cari lokasi kota / venue di Google Maps..."
+          placeholder="Cari lokasi asal / venue di Google Maps..."
           aria-label="Cari lokasi di Google Maps"
           className="w-full pl-9 pr-3 py-2 text-xs bg-white/95 backdrop-blur-md border border-[#9FD2D6] rounded-xl shadow-md placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#377EC0]"
         />
@@ -200,15 +389,23 @@ function PlacesSearchControl({
   );
 }
 
-function MapCameraSync({ center, zoom }: { center: { lat: number; lng: number }; zoom: number }) {
+function MapCameraSync({
+  center,
+  zoom,
+  pauseCamera,
+}: {
+  center: { lat: number; lng: number };
+  zoom: number;
+  pauseCamera: boolean;
+}) {
   const map = useMap();
 
   useEffect(() => {
-    if (map) {
+    if (map && !pauseCamera) {
       map.panTo(center);
       map.setZoom(zoom);
     }
-  }, [map, center, zoom]);
+  }, [map, center, zoom, pauseCamera]);
 
   return null;
 }
@@ -218,27 +415,42 @@ function GoogleMapViewport({
   activeEvent,
   userLocation,
   isTrackingGps,
+  routeEnabled,
+  travelMode,
+  searchedLocation,
+  onSelectSearchedLocation,
   onToggleGps,
   onSelectEvent,
   onRegisterEvent,
+  onRouteStatus,
 }: {
   events: EventItem[];
   activeEvent: EventItem | null;
   userLocation: { lat: number; lng: number } | null;
   isTrackingGps: boolean;
+  routeEnabled: boolean;
+  travelMode: TravelModeChoice;
+  searchedLocation: { lat: number; lng: number; label: string } | null;
+  onSelectSearchedLocation: (loc: { lat: number; lng: number; label: string } | null) => void;
   onToggleGps: () => void;
   onSelectEvent: (ev: EventItem) => void;
   onRegisterEvent: (ev: EventItem) => void;
+  onRouteStatus: (status: {
+    loading: boolean;
+    summary: RouteSummary | null;
+    error: string | null;
+  }) => void;
 }) {
   const status = useApiLoadingStatus();
-  const [searchedLocation, setSearchedLocation] = useState<{
-    lat: number;
-    lng: number;
-    label: string;
-  } | null>(null);
+
+  const routeOrigin = useMemo(() => {
+    if (userLocation) return { ...userLocation, label: 'Lokasi GPS Saya' };
+    if (searchedLocation) return searchedLocation;
+    return DEFAULT_ORIGIN;
+  }, [userLocation, searchedLocation]);
 
   const cameraTarget = useMemo(() => {
-    if (searchedLocation) {
+    if (searchedLocation && !routeEnabled) {
       return { center: { lat: searchedLocation.lat, lng: searchedLocation.lng }, zoom: 13 };
     }
     if (activeEvent) {
@@ -248,11 +460,14 @@ function GoogleMapViewport({
       return { center: userLocation, zoom: 12 };
     }
     return { center: { lat: -6.2088, lng: 106.8456 }, zoom: 6 };
-  }, [activeEvent, searchedLocation, userLocation]);
+  }, [activeEvent, searchedLocation, userLocation, routeEnabled]);
 
-  const handleSelectLocation = useCallback((lat: number, lng: number, label: string) => {
-    setSearchedLocation({ lat, lng, label });
-  }, []);
+  const handleSelectLocation = useCallback(
+    (lat: number, lng: number, label: string) => {
+      onSelectSearchedLocation({ lat, lng, label });
+    },
+    [onSelectSearchedLocation]
+  );
 
   if (
     !GOOGLE_MAPS_API_KEY ||
@@ -264,9 +479,9 @@ function GoogleMapViewport({
         <div className="w-12 h-12 rounded-2xl bg-[#377EC0] text-white flex items-center justify-center">
           <MapPin className="w-6 h-6" />
         </div>
-        <h3 className="font-pixel text-xl text-slate-900">Peta Lokasi Event</h3>
+        <h3 className="font-pixel text-xl text-slate-900">Peta Lokasi & Rute Event</h3>
         <p className="text-xs text-slate-600 max-w-sm">
-          Pilih event dari daftar atau beralih ke tab <strong>Jalur Jadwal</strong> untuk melihat rute kronologis setiap acara.
+          Pilih event dari daftar di bawah, atau klik <strong>Buka Rute di Google Maps</strong> di panel kanan untuk membuka navigasi langsung di Google Maps.
         </p>
         <div className="flex flex-wrap justify-center gap-2 pt-2">
           {events.map((ev) => (
@@ -299,7 +514,24 @@ function GoogleMapViewport({
         internalUsageAttributionIds={['gmp_mcp_codeassist_v1_aistudio']}
         style={{ width: '100%', height: '100%' }}
       >
-        <MapCameraSync center={cameraTarget.center} zoom={cameraTarget.zoom} />
+        <MapCameraSync
+          center={cameraTarget.center}
+          zoom={cameraTarget.zoom}
+          pauseCamera={routeEnabled}
+        />
+
+        {activeEvent && (
+          <EventRouteLayer
+            originLat={routeOrigin.lat}
+            originLng={routeOrigin.lng}
+            originLabel={routeOrigin.label}
+            destLat={activeEvent.lat}
+            destLng={activeEvent.lng}
+            travelMode={travelMode}
+            enabled={routeEnabled}
+            onRouteStatus={onRouteStatus}
+          />
+        )}
 
         {events.map((ev) => (
           <EventAdvancedMarker
@@ -307,24 +539,31 @@ function GoogleMapViewport({
             event={ev}
             isSelected={activeEvent?.id === ev.id}
             onSelect={() => {
-              setSearchedLocation(null);
               onSelectEvent(ev);
             }}
             onRegister={() => onRegisterEvent(ev)}
+            gmapsRouteUrl={buildGoogleMapsDirectionsUrl(
+              { lat: ev.lat, lng: ev.lng },
+              userLocation ?? searchedLocation,
+              travelMode
+            )}
           />
         ))}
 
         {searchedLocation && (
           <AdvancedMarker
             position={{ lat: searchedLocation.lat, lng: searchedLocation.lng }}
-            title={searchedLocation.label}
+            title={`Titik Asal: ${searchedLocation.label}`}
           >
             <Pin background="#FBDF54" borderColor="#0F172A" glyphColor="#0F172A" />
           </AdvancedMarker>
         )}
 
-        {userLocation && (
-          <AdvancedMarker position={userLocation} title="Lokasi Saya (Real-time)">
+        {(userLocation || (routeEnabled && !searchedLocation)) && (
+          <AdvancedMarker
+            position={userLocation || { lat: DEFAULT_ORIGIN.lat, lng: DEFAULT_ORIGIN.lng }}
+            title={userLocation ? 'Lokasi Saya (Real-time)' : DEFAULT_ORIGIN.label}
+          >
             <div className="relative flex items-center justify-center">
               <span className="w-7 h-7 rounded-full bg-[#377EC0]/30 animate-ping absolute" />
               <span className="w-4 h-4 rounded-full bg-[#377EC0] border-2 border-white shadow-md relative" />
@@ -369,7 +608,22 @@ export const InteractiveEventMap: React.FC<InteractiveEventMapProps> = ({
   const [selectedCity, setSelectedCity] = useState<string>('Semua');
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [searchedLocation, setSearchedLocation] = useState<{
+    lat: number;
+    lng: number;
+    label: string;
+  } | null>(null);
   const [isTrackingGps, setIsTrackingGps] = useState(false);
+
+  // Route visualization state
+  const [routeEnabled, setRouteEnabled] = useState(false);
+  const [travelMode, setTravelMode] = useState<TravelModeChoice>('DRIVING');
+  const [routeState, setRouteState] = useState<{
+    loading: boolean;
+    summary: RouteSummary | null;
+    error: string | null;
+  }>({ loading: false, summary: null, error: null });
+
   const [liveTimeLabel, setLiveTimeLabel] = useState(() =>
     new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   );
@@ -390,7 +644,6 @@ export const InteractiveEventMap: React.FC<InteractiveEventMapProps> = ({
         setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       },
       () => {
-        // Fallback smoothly to Central Jakarta area if permission is denied inside sandboxed iframe
         setUserLocation({ lat: -6.2088, lng: 106.8456 });
       },
       { enableHighAccuracy: true, maximumAge: 5000 }
@@ -406,6 +659,25 @@ export const InteractiveEventMap: React.FC<InteractiveEventMapProps> = ({
       setIsTrackingGps(true);
     }
   };
+
+  const handleRouteStatus = useCallback(
+    (status: { loading: boolean; summary: RouteSummary | null; error: string | null }) => {
+      setRouteState((prev) => {
+        if (
+          prev.loading === status.loading &&
+          prev.error === status.error &&
+          prev.summary?.distanceText === status.summary?.distanceText &&
+          prev.summary?.durationText === status.summary?.durationText &&
+          prev.summary?.mode === status.summary?.mode &&
+          prev.summary?.originLabel === status.summary?.originLabel
+        ) {
+          return prev;
+        }
+        return status;
+      });
+    },
+    []
+  );
 
   const publishedEvents = useMemo(
     () =>
@@ -439,6 +711,17 @@ export const InteractiveEventMap: React.FC<InteractiveEventMapProps> = ({
     return filteredEvents.find((e) => e.id === selectedEventId) ?? filteredEvents[0];
   }, [filteredEvents, selectedEventId]);
 
+  const effectiveOrigin = userLocation ?? searchedLocation;
+
+  const activeGmapsDirectionsUrl = useMemo(() => {
+    if (!activeEvent) return '#';
+    return buildGoogleMapsDirectionsUrl(
+      { lat: activeEvent.lat, lng: activeEvent.lng },
+      effectiveOrigin,
+      travelMode
+    );
+  }, [activeEvent, effectiveOrigin, travelMode]);
+
   const formatPrice = (price: number) =>
     price === 0 ? 'Gratis' : `Rp ${price.toLocaleString('id-ID')}`;
 
@@ -457,10 +740,10 @@ export const InteractiveEventMap: React.FC<InteractiveEventMapProps> = ({
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
           <div>
             <p className="text-xs font-extrabold tracking-widest uppercase text-[#377EC0] mb-1.5">
-              Google Maps & Jadwal Interaktif
+              Google Maps, Rute & Jadwal Interaktif
             </p>
             <h2 className="font-pixel text-2xl sm:text-4xl text-slate-900 tracking-tight text-balance">
-              Temukan lokasi event dan jadwalnya
+              Temukan lokasi event, rute & jadwalnya
             </h2>
           </div>
 
@@ -559,16 +842,21 @@ export const InteractiveEventMap: React.FC<InteractiveEventMapProps> = ({
                 apiKey={GOOGLE_MAPS_API_KEY}
                 language="id"
                 region="ID"
-                libraries={['marker', 'places']}
+                libraries={['marker', 'places', 'routes']}
               >
                 <GoogleMapViewport
                   events={filteredEvents}
                   activeEvent={activeEvent}
                   userLocation={userLocation}
                   isTrackingGps={isTrackingGps}
+                  routeEnabled={routeEnabled}
+                  travelMode={travelMode}
+                  searchedLocation={searchedLocation}
+                  onSelectSearchedLocation={setSearchedLocation}
                   onToggleGps={handleToggleGps}
                   onSelectEvent={(ev) => setSelectedEventId(ev.id)}
                   onRegisterEvent={onSelectEventToRegister}
+                  onRouteStatus={handleRouteStatus}
                 />
               </APIProvider>
             ) : (
@@ -677,10 +965,10 @@ export const InteractiveEventMap: React.FC<InteractiveEventMapProps> = ({
             </div>
           </div>
 
-          {/* RIGHT: Active Event Detail & Schedule Card */}
+          {/* RIGHT: Active Event Detail, Route Controls & Schedule Card */}
           <div className="lg:col-span-5 bg-white rounded-[32px] p-6 sm:p-7 shadow-xl shadow-[#377EC0]/10 border border-[#9FD2D6]/50 flex flex-col justify-between">
             {activeEvent ? (
-              <div className="space-y-5">
+              <div className="space-y-4">
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <span className="text-[11px] font-extrabold tracking-wider uppercase text-[#377EC0]">
@@ -694,7 +982,7 @@ export const InteractiveEventMap: React.FC<InteractiveEventMapProps> = ({
                   <h3 className="font-pixel text-2xl sm:text-3xl text-slate-900 tracking-tight leading-tight">
                     {activeEvent.title}
                   </h3>
-                  <p className="text-xs sm:text-sm font-medium text-slate-600 mt-2 leading-relaxed">
+                  <p className="text-xs sm:text-sm font-medium text-slate-600 mt-1.5 leading-relaxed">
                     {activeEvent.description}
                   </p>
                 </div>
@@ -706,9 +994,16 @@ export const InteractiveEventMap: React.FC<InteractiveEventMapProps> = ({
                     <div className="flex-1">
                       <p className="font-extrabold text-slate-900">{activeEvent.venue}</p>
                       <p className="text-slate-500">{activeEvent.address}</p>
-                      {userLocation && (
+                      {(userLocation || searchedLocation) && (
                         <p className="text-[11px] font-extrabold text-[#377EC0] mt-0.5 tabular-nums">
-                          Jarak real-time: {calcDistanceKm(userLocation.lat, userLocation.lng, activeEvent.lat, activeEvent.lng).toFixed(1)} km dari posisimu
+                          Estimasi jarak lurus:{' '}
+                          {calcDistanceKm(
+                            (userLocation ?? searchedLocation)!.lat,
+                            (userLocation ?? searchedLocation)!.lng,
+                            activeEvent.lat,
+                            activeEvent.lng
+                          ).toFixed(1)}{' '}
+                          km
                         </p>
                       )}
                     </div>
@@ -728,12 +1023,97 @@ export const InteractiveEventMap: React.FC<InteractiveEventMapProps> = ({
                   </div>
                 </div>
 
+                {/* Route Planning & Open in Google Maps Controls */}
+                <div className="p-3.5 rounded-2xl bg-[#F4FAFC] border border-[#9FD2D6] space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#1E3A8A] inline-flex items-center gap-1.5">
+                      <Route className="w-3.5 h-3.5 text-[#377EC0]" />
+                      Rute Menuju Lokasi Event
+                    </span>
+                    <div className="inline-flex rounded-lg bg-white p-0.5 border border-[#9FD2D6]/60">
+                      {(
+                        [
+                          { id: 'DRIVING', icon: Car, label: 'Mobil' },
+                          { id: 'WALKING', icon: Footprints, label: 'Jalan' },
+                          { id: 'TRANSIT', icon: TrainFront, label: 'Transit' },
+                        ] as const
+                      ).map((m) => {
+                        const Icon = m.icon;
+                        const active = travelMode === m.id;
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => setTravelMode(m.id)}
+                            title={m.label}
+                            className={`px-2 py-1 rounded-md text-[10px] font-extrabold inline-flex items-center gap-1 cursor-pointer transition-colors ${
+                              active
+                                ? 'bg-[#377EC0] text-white'
+                                : 'text-slate-600 hover:text-[#377EC0]'
+                            }`}
+                          >
+                            <Icon className="w-3 h-3" />
+                            <span className="hidden sm:inline">{m.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMapMode('city');
+                        setRouteEnabled((prev) => !prev);
+                      }}
+                      className={`px-3 py-2 rounded-xl text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                        routeEnabled
+                          ? 'bg-[#12BAAA] text-white shadow-sm'
+                          : 'bg-white border border-[#9FD2D6] text-[#377EC0] hover:bg-[#E8F5FA]'
+                      }`}
+                    >
+                      {routeState.loading ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Route className="w-3.5 h-3.5" />
+                      )}
+                      {routeEnabled ? 'Sembunyikan Rute' : 'Gambar Rute di Peta'}
+                    </button>
+
+                    <a
+                      href={activeGmapsDirectionsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-2 rounded-xl bg-[#377EC0] hover:bg-[#5460AC] text-white text-xs font-extrabold inline-flex items-center justify-center gap-1.5 shadow-sm transition-colors"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      Buka Rute di Google Maps
+                    </a>
+                  </div>
+
+                  {routeEnabled && routeState.summary && (
+                    <div className="rounded-xl bg-white px-3 py-2 border border-[#12BAAA]/50 flex items-center justify-between text-[11px] font-bold text-slate-700">
+                      <span>Dari {routeState.summary.originLabel}</span>
+                      <span className="font-extrabold text-[#12BAAA] tabular-nums">
+                        {routeState.summary.distanceText} · {routeState.summary.durationText}
+                      </span>
+                    </div>
+                  )}
+
+                  {routeEnabled && routeState.error && (
+                    <p className="text-[11px] font-bold text-[#B45309] bg-[#FFF4E5] px-2.5 py-1.5 rounded-lg">
+                      {routeState.error}
+                    </p>
+                  )}
+                </div>
+
                 {/* Rundown / Jadwal Sesi */}
                 <div id="jadwal">
-                  <p className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-2.5">
+                  <p className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-2">
                     Jadwal & Rundown Acara
                   </p>
-                  <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
+                  <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
                     {activeEvent.rundown.map((item, idx) => (
                       <div
                         key={idx}

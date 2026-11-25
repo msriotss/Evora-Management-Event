@@ -15,6 +15,7 @@ import {
   Users,
   Download,
   Flame,
+  Mail,
 } from 'lucide-react';
 import { EventItem, StreakState, TicketOrder, UserAccount, UserRole } from '../types/evora';
 import { RoleMascot } from './EvoraMascots';
@@ -34,6 +35,7 @@ interface RoleDashboardsProps {
   onToggleReminder: (orderId: string) => void;
   onSubmitFeedback: (orderId: string, rating: number, comment: string) => void;
   onGoToMap: () => void;
+  onSendBroadcast?: () => void;
 }
 
 const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
@@ -59,6 +61,7 @@ export const RoleDashboards: React.FC<RoleDashboardsProps> = ({
   onToggleReminder,
   onSubmitFeedback,
   onGoToMap,
+  onSendBroadcast,
 }) => {
   const role = currentUser.role;
 
@@ -230,6 +233,17 @@ export const RoleDashboards: React.FC<RoleDashboardsProps> = ({
                   </button>
                 ))}
               </div>
+              {onSendBroadcast && (
+                <button
+                  type="button"
+                  onClick={onSendBroadcast}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#FFF4E5] hover:bg-[#FBDF54]/50 text-[#B45309] border border-[#FBDF54] text-xs font-extrabold transition-colors cursor-pointer"
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  Broadcast Gmail
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={onLogout}
