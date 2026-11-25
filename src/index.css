@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: #EFE9FA;
+    background-image:
+      radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.75) 0%, transparent 45%),
+      radial-gradient(circle at 85% 80%, rgba(196, 181, 253, 0.45) 0%, transparent 50%);
+    min-height: 100vh;
+    color: #1e293b;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+.phone-frame {
+  box-shadow:
+    0 30px 60px -15px rgba(76, 29, 149, 0.16),
+    0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+
+@keyframes floatGentle {
+  0%, 100% {
+    transform: translateY(0px) rotate(var(--r, 0deg));
+  }
+  50% {
+    transform: translateY(-12px) rotate(calc(var(--r, 0deg) + 4deg));
+  }
+}
+
+.float-a {
+  animation: floatGentle 8s ease-in-out infinite;
+}
+
+.float-b {
+  animation: floatGentle 10s ease-in-out infinite 1.5s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .float-a,
+  .float-b {
+    animation: none;
+  }
+}

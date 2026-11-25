@@ -1,0 +1,6 @@
+{
+  "name": "EVORA",
+  "description": "Event Management Platform — Alur akses pengguna, login, registrasi, verifikasi OTP, dan dashboard multi-peran.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
