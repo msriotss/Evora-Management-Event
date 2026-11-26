@@ -7,6 +7,8 @@ import {
   Loader2,
   UserPlus,
   ExternalLink,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { signInWithPopup, signInWithRedirect } from 'firebase/auth';
 import { auth, googleAuthProvider } from '../lib/firebase';
@@ -53,6 +55,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [showNewTabHelp, setShowNewTabHelp] = useState(false);
   const [showSwitchToLogin, setShowSwitchToLogin] = useState(false);
+  const [unauthorizedHost, setUnauthorizedHost] = useState<string | null>(null);
+  const [copiedDomain, setCopiedDomain] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -61,6 +65,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setError(null);
       setShowNewTabHelp(false);
       setShowSwitchToLogin(false);
+      setUnauthorizedHost(null);
+      setCopiedDomain(false);
     }
   }, [isOpen, initialMode, initialRole]);
 
@@ -73,6 +79,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setError(null);
     setShowNewTabHelp(false);
     setShowSwitchToLogin(false);
+    setUnauthorizedHost(null);
+    setCopiedDomain(false);
     setGoogleLoading(true);
 
     const inIframe = (() => {
@@ -124,8 +132,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             : 'Popup login Google diblokir browser. Izinkan pop-up untuk situs ini lalu coba lagi.'
         );
       } else if (code === 'auth/unauthorized-domain') {
+        const host = window.location.hostname;
+        setUnauthorizedHost(host);
         setError(
-          `Domain "${window.location.hostname}" belum terdaftar di Firebase Authorized Domains. Gunakan domain resmi EVORA atau Daftar Manual.`
+          `Domain "${host}" belum ditambahkan di Firebase Authentication → Authorized Domains.`
         );
       } else if (code === 'auth/network-request-failed') {
         setError('Koneksi ke layanan Google terganggu. Periksa internet lalu coba lagi.');
@@ -377,6 +387,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             {error && (
               <div className="text-xs font-bold text-[#F04F52] text-center bg-[#FDECEC] p-2.5 rounded-xl space-y-2">
                 <p>{error}</p>
+                {unauthorizedHost && (
+                  <div className="flex flex-wrap items-center justify-center gap-1.5 pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard?.writeText(unauthorizedHost).catch(() => {});
+                        setCopiedDomain(true);
+                        setTimeout(() => setCopiedDomain(false), 2000);
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-[#F04F52]/30 text-slate-800 hover:bg-[#E8F5FA] text-[11px] font-extrabold cursor-pointer"
+                    >
+                      {copiedDomain ? <Check className="w-3 h-3 text-[#12BAAA]" /> : <Copy className="w-3 h-3" />}
+                      {copiedDomain ? 'Tersalin!' : `Salin: ${unauthorizedHost}`}
+                    </button>
+                    <a
+                      href="https://console.firebase.google.com/project/fifth-year-3v0ns/authentication/settings"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#377EC0] text-white hover:bg-[#5460AC] text-[11px] font-extrabold"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      Tambah di Firebase Console
+                    </a>
+                  </div>
+                )}
                 {showNewTabHelp && typeof window !== 'undefined' && (
                   <a
                     href={window.location.href}
@@ -493,6 +528,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             {error && (
               <div className="text-xs font-bold text-[#F04F52] text-center bg-[#FDECEC] p-2.5 rounded-xl space-y-2">
                 <p>{error}</p>
+                {unauthorizedHost && (
+                  <div className="flex flex-wrap items-center justify-center gap-1.5 pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard?.writeText(unauthorizedHost).catch(() => {});
+                        setCopiedDomain(true);
+                        setTimeout(() => setCopiedDomain(false), 2000);
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-[#F04F52]/30 text-slate-800 hover:bg-[#E8F5FA] text-[11px] font-extrabold cursor-pointer"
+                    >
+                      {copiedDomain ? <Check className="w-3 h-3 text-[#12BAAA]" /> : <Copy className="w-3 h-3" />}
+                      {copiedDomain ? 'Tersalin!' : `Salin: ${unauthorizedHost}`}
+                    </button>
+                    <a
+                      href="https://console.firebase.google.com/project/fifth-year-3v0ns/authentication/settings"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#377EC0] text-white hover:bg-[#5460AC] text-[11px] font-extrabold"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      Tambah di Firebase Console
+                    </a>
+                  </div>
+                )}
                 {showSwitchToLogin && (
                   <button
                     type="button"
