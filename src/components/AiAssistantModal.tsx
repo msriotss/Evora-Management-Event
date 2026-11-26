@@ -111,6 +111,8 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
+  const [lastFailedPrompt, setLastFailedPrompt] = useState<string | null>(null);
+
   useEffect(() => {
     if (isOpen && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -132,22 +134,30 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
     const nextHistory = [...messages, userMsg];
     setMessages(nextHistory);
     setInput('');
+    setLastFailedPrompt(null);
     setLoading(true);
 
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 25000);
+
     try {
+      const apiMessages = nextHistory
+        .filter((m) => m.id !== 'welcome-1' && !m.isError)
+        .map((m) => ({ role: m.role, text: m.text }));
+
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
-          messages: nextHistory
-            .filter((m) => !m.isError)
-            .map((m) => ({ role: m.role, text: m.text })),
+          messages: apiMessages,
         }),
       });
 
       const data = (await res.json()) as { reply?: string; error?: string };
 
       if (!res.ok || !data.reply) {
+        setLastFailedPrompt(trimmed);
         setMessages((prev) => [
           ...prev,
           {
@@ -155,7 +165,7 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
             role: 'assistant',
             text:
               data.error ||
-              'Maaf, Bot AI sedang tidak dapat merespons. Silakan cek API key atau hubungi Customer Service via WhatsApp 089603963329.',
+              'Maaf, Bot AI sedang tidak dapat merespons. Silakan coba lagi atau hubungi Customer Service via WhatsApp 089603963329.',
             isError: true,
           },
         ]);
@@ -169,17 +179,22 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
           },
         ]);
       }
-    } catch {
+    } catch (err: unknown) {
+      setLastFailedPrompt(trimmed);
+      const isTimeout = err instanceof DOMException && err.name === 'AbortError';
       setMessages((prev) => [
         ...prev,
         {
           id: `err-${Date.now()}`,
           role: 'assistant',
-          text: 'Koneksi ke server Bot AI terputus. Coba lagi sebentar atau hubungi WA CS 089603963329.',
+          text: isTimeout
+            ? 'Permintaan ke Bot AI memakan waktu terlalu lama. Klik Coba Lagi atau hubungi WA CS 089603963329.'
+            : 'Koneksi ke server Bot AI terputus. Coba lagi sebentar atau hubungi WA CS 089603963329.',
           isError: true,
         },
       ]);
     } finally {
+      window.clearTimeout(timeoutId);
       setLoading(false);
     }
   };
@@ -227,7 +242,7 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
           ref={scrollRef}
           className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#F4FAFC] min-h-[260px]"
         >
-          {messages.map((msg) => (
+          {messages.map((msg, idx) => (
             <div
               key={msg.id}
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
@@ -244,7 +259,19 @@ export const AiAssistantModal: React.FC<AiAssistantModalProps> = ({
                 {msg.role === 'assistant' && !msg.isError ? (
                   <FormattedBotText text={msg.text} />
                 ) : (
-                  msg.text
+                  <div className="space-y-2">
+                    <p>{msg.text}</p>
+                    {msg.isError && idx === messages.length - 1 && lastFailedPrompt && (
+                      <button
+                        type="button"
+                        onClick={() => sendMessage(lastFailedPrompt)}
+                        disabled={loading}
+                        className="px-2.5 py-1 rounded-lg bg-[#B91C1C] hover:bg-[#991B1B] text-white text-[11px] font-extrabold cursor-pointer"
+                      >
+                        Coba Kirim Lagi
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

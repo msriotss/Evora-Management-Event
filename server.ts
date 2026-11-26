@@ -3,7 +3,7 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
 import {
   createOtpChallenge,
@@ -542,7 +542,7 @@ async function startServer() {
 
   // ================= BOT AI EVORA (SYSTEMATIC GEMINI CHAT) =================
   app.post('/api/chat', async (req, res) => {
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY?.trim();
     if (!apiKey) {
       res.status(500).json({
         error: 'GEMINI_API_KEY belum dikonfigurasi pada panel Settings > Secrets.',
@@ -559,40 +559,127 @@ async function startServer() {
       return;
     }
 
-    try {
-      const ai = new GoogleGenAI({
-        apiKey,
-        httpOptions: {
-          headers: {
-            'User-Agent': 'aistudio-build',
-          },
+    // Normalize turns: must start with 'user' and cleanly alternate 'user' <-> 'model'
+    const normalizedContents: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [];
+    for (const raw of messages.slice(-12)) {
+      const text = String(raw?.text || '').trim().slice(0, 2000);
+      if (!text) continue;
+      const role: 'user' | 'model' = raw.role === 'assistant' ? 'model' : 'user';
+      if (normalizedContents.length === 0 && role === 'model') {
+        continue;
+      }
+      const prev = normalizedContents[normalizedContents.length - 1];
+      if (prev && prev.role === role) {
+        prev.parts[0].text = `${prev.parts[0].text}\n${text}`;
+      } else {
+        normalizedContents.push({ role, parts: [{ text }] });
+      }
+    }
+
+    if (normalizedContents.length === 0) {
+      res.status(400).json({ error: 'Ketik pertanyaan terlebih dahulu untuk Bot AI.' });
+      return;
+    }
+
+    const ai = new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
         },
+      },
+    });
+
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const callModel = async (modelName: string) => {
+      const config =
+        modelName === 'gemini-4-hydrogen'
+          ? {
+              systemInstruction: EVORA_SYSTEM_INSTRUCTION,
+              thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+            }
+          : {
+              systemInstruction: EVORA_SYSTEM_INSTRUCTION,
+            };
+      return ai.models.generateContent({
+        model: modelName,
+        contents: normalizedContents,
+        config,
       });
+    };
 
-      const contents = messages.slice(-10).map((m) => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: String(m.text || '').slice(0, 2000) }],
-      }));
+    const parseGeminiError = (err: unknown): { status: number; message: string } => {
+      const anyErr = err as { status?: number; message?: string };
+      const rawMsg = String(anyErr?.message || '');
+      let status = typeof anyErr?.status === 'number' ? anyErr.status : 500;
+      let detail = rawMsg;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-4-hydrogen',
-        contents,
-        config: {
-          systemInstruction: EVORA_SYSTEM_INSTRUCTION,
-        },
-      });
-
-      const replyText = response.text?.trim();
-      if (!replyText) {
-        res.status(502).json({ error: 'Bot AI tidak mengembalikan jawaban. Silakan coba lagi.' });
-        return;
+      try {
+        const parsed = JSON.parse(rawMsg) as { error?: { code?: number; message?: string; status?: string } };
+        if (parsed?.error?.code) status = parsed.error.code;
+        if (parsed?.error?.message) detail = parsed.error.message;
+      } catch {
+        // non-JSON message
       }
 
-      res.json({ reply: replyText });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Terjadi kesalahan pada Bot AI.';
-      res.status(500).json({ error: message });
+      if (status === 403 || detail.includes('API_KEY_INVALID') || detail.includes('PERMISSION_DENIED')) {
+        return {
+          status,
+          message: 'Kunci API Gemini belum valid atau izin belum aktif. Periksa GEMINI_API_KEY di panel Settings > Secrets.',
+        };
+      }
+      if (status === 429 || detail.includes('RESOURCE_EXHAUSTED')) {
+        return {
+          status: 429,
+          message: 'Kuota permintaan Gemini AI sedang penuh. Tunggu beberapa saat lalu coba lagi.',
+        };
+      }
+      if (status === 503 || detail.includes('UNAVAILABLE') || detail.includes('high demand')) {
+        return {
+          status: 503,
+          message: 'Server Gemini AI sedang mengalami lonjakan trafik sementara. Silakan klik Kirim / Coba Lagi dalam beberapa detik.',
+        };
+      }
+      return {
+        status,
+        message: detail || 'Terjadi kesalahan saat menghubungi Bot AI EVORA.',
+      };
+    };
+
+    const modelsToTry = ['gemini-4-hydrogen', 'gemini-3.1-flash-lite'];
+    let lastError: unknown = null;
+
+    for (const modelName of modelsToTry) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const response = await callModel(modelName);
+          const replyText = response.text?.trim();
+          if (replyText) {
+            res.json({ reply: replyText, model: modelName });
+            return;
+          }
+        } catch (err: unknown) {
+          lastError = err;
+          const parsed = parseGeminiError(err);
+          const isTransient = parsed.status === 503 || parsed.status === 500 || parsed.status === 429;
+          if (!isTransient) {
+            res.status(parsed.status >= 400 && parsed.status < 600 ? parsed.status : 500).json({
+              error: parsed.message,
+            });
+            return;
+          }
+          if (attempt === 0) {
+            await sleep(500);
+          }
+        }
+      }
     }
+
+    const finalErr = parseGeminiError(lastError);
+    res.status(finalErr.status >= 400 && finalErr.status < 600 ? finalErr.status : 502).json({
+      error: finalErr.message,
+    });
   });
 
   if (process.env.NODE_ENV !== 'production') {

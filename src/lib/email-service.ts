@@ -185,16 +185,68 @@ export interface EmailSendResult {
   notice: string;
 }
 
+function stripQuotes(val?: string): string {
+  return (val || '').trim().replace(/^["']|["']$/g, '');
+}
+
+function explainSmtpError(err: unknown): string {
+  const anyErr = err as { code?: string; responseCode?: number; message?: string } | undefined;
+  const code = anyErr?.code || '';
+  const respCode = anyErr?.responseCode;
+  const msg = String(anyErr?.message || '');
+
+  if (code === 'EAUTH' || respCode === 535 || msg.includes('Username and Password not accepted')) {
+    return 'Gmail menolak login SMTP (535). Pastikan SMTP_USER adalah alamat Gmail lengkap dan SMTP_PASS memakai 16 digit Google App Password (bukan sandi Gmail biasa).';
+  }
+  if (code === 'ETIMEDOUT' || code === 'ESOCKET' || code === 'ECONNREFUSED' || code === 'ENOTFOUND') {
+    return `Koneksi ke server SMTP gagal (${code}).`;
+  }
+  return 'Pengiriman SMTP Gmail gagal (periksa SMTP_USER / Google App Password di Settings > Secrets).';
+}
+
+async function trySendViaTransport(params: {
+  host: string;
+  port: number;
+  user: string;
+  pass: string;
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+}) {
+  const transporter = nodemailer.createTransport({
+    host: params.host,
+    port: params.port,
+    secure: params.port === 465,
+    connectionTimeout: 5000,
+    greetingTimeout: 5000,
+    socketTimeout: 7000,
+    auth: {
+      user: params.user,
+      pass: params.pass,
+    },
+  });
+
+  await transporter.sendMail({
+    from: `"EVORA Events" <${params.user}>`,
+    to: params.to,
+    subject: params.subject,
+    text: params.text,
+    html: params.html,
+  });
+}
+
 export async function sendEvoraEmail(params: {
   to: string;
   subject: string;
   html: string;
   text: string;
 }): Promise<EmailSendResult> {
-  const smtpUser = process.env.SMTP_USER?.trim();
-  const smtpPass = process.env.SMTP_PASS?.trim();
-  const smtpHost = process.env.SMTP_HOST?.trim() || 'smtp.gmail.com';
-  const smtpPort = Number(process.env.SMTP_PORT || 465);
+  const smtpUser = stripQuotes(process.env.SMTP_USER);
+  // Google App Passwords are often copied with spaces ("xxxx xxxx xxxx xxxx")
+  const smtpPass = stripQuotes(process.env.SMTP_PASS).replace(/\s+/g, '');
+  const smtpHost = stripQuotes(process.env.SMTP_HOST) || 'smtp.gmail.com';
+  const configuredPort = Number(stripQuotes(process.env.SMTP_PORT) || 465);
 
   if (!smtpUser || !smtpPass) {
     return {
@@ -202,43 +254,49 @@ export async function sendEvoraEmail(params: {
       deliveryMode: 'preview',
       previewHtml: params.html,
       notice:
-        'Mode Pratinjau Aktif: Tambahkan SMTP_USER & SMTP_PASS (Gmail App Password) di Settings > Secrets untuk pengiriman langsung ke kotak masuk Gmail.',
+        'Mode Pratinjau Aktif: Kode OTP & email tetap siap dipakai langsung di layar. (Opsional: isi SMTP_USER & 16-digit Gmail App Password di Secrets untuk kirim ke inbox Gmail.)',
     };
   }
 
-  try {
-    const transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: smtpPort,
-      secure: smtpPort === 465,
-      auth: {
+  const portsToTry = configuredPort === 465 ? [465, 587] : [configuredPort];
+  let lastError: unknown = null;
+
+  for (const port of portsToTry) {
+    try {
+      await trySendViaTransport({
+        host: smtpHost,
+        port,
         user: smtpUser,
         pass: smtpPass,
-      },
-    });
+        to: params.to,
+        subject: params.subject,
+        text: params.text,
+        html: params.html,
+      });
 
-    await transporter.sendMail({
-      from: `"EVORA Events" <${smtpUser}>`,
-      to: params.to,
-      subject: params.subject,
-      text: params.text,
-      html: params.html,
-    });
-
-    return {
-      delivered: true,
-      deliveryMode: 'smtp-gmail',
-      previewHtml: params.html,
-      notice: `Email resmi berhasil dikirim ke ${params.to}!`,
-    };
-  } catch (err) {
-    console.error('SMTP delivery failed, falling back to preview notice:', err);
-    return {
-      delivered: false,
-      deliveryMode: 'preview',
-      previewHtml: params.html,
-      notice:
-        'Pengiriman SMTP Gmail gagal (periksa SMTP_USER / App Password di Secrets). Pratinjau email tetap tersedia di layar.',
-    };
+      return {
+        delivered: true,
+        deliveryMode: 'smtp-gmail',
+        previewHtml: params.html,
+        notice: `Email resmi berhasil dikirim ke kotak masuk ${params.to}!`,
+      };
+    } catch (err) {
+      lastError = err;
+      const anyErr = err as { code?: string; responseCode?: number };
+      // Do not retry second port on authentication rejection
+      if (anyErr?.code === 'EAUTH' || anyErr?.responseCode === 535) {
+        break;
+      }
+    }
   }
+
+  const errSummary = explainSmtpError(lastError);
+  console.error('SMTP delivery failed, using instant screen preview:', errSummary);
+  return {
+    delivered: false,
+    deliveryMode: 'preview',
+    previewHtml: params.html,
+    notice: `${errSummary} Gunakan kode OTP & pratinjau email langsung di bawah ini.`,
+  };
 }
+

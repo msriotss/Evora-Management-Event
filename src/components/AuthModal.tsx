@@ -192,10 +192,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     setError(null);
     setLoading(true);
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 20000);
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           name: name.trim(),
           email: email.trim(),
@@ -220,12 +223,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setOtpNotice(data.notice || 'Kode OTP 6 digit telah dikirim ke Gmail kamu.');
       setOtpPreviewHtml(data.otpPreviewHtml || null);
       setDevOtpHint(data.devOtpHint || null);
+      setShowOtpInboxPreview(Boolean(data.devOtpHint && data.otpPreviewHtml));
       setResendCooldown(30);
       setStep('otp');
       setTimeout(() => otpRefs.current[0]?.focus(), 100);
-    } catch {
-      setError('Gagal terhubung ke server pendaftaran.');
+    } catch (err: unknown) {
+      const isTimeout = err instanceof DOMException && err.name === 'AbortError';
+      setError(
+        isTimeout
+          ? 'Permintaan kirim OTP melebihi batas waktu. Coba tekan Kirim Kode OTP lagi.'
+          : 'Gagal terhubung ke server pendaftaran.'
+      );
     } finally {
+      window.clearTimeout(timeoutId);
       setLoading(false);
     }
   };
@@ -234,10 +244,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     if (loading || resendCooldown > 0) return;
     setError(null);
     setLoading(true);
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 20000);
     try {
       const res = await fetch('/api/auth/resend-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({ email: email.trim() }),
       });
       const data = (await res.json()) as {
@@ -255,13 +268,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setOtpNotice(data.notice || 'Kode OTP baru telah dikirim!');
       setOtpPreviewHtml(data.otpPreviewHtml || null);
       setDevOtpHint(data.devOtpHint || null);
+      setShowOtpInboxPreview(Boolean(data.devOtpHint && data.otpPreviewHtml));
       setResendCooldown(30);
       otpRefs.current[0]?.focus();
     } catch {
       setError('Koneksi terputus saat mengirim ulang kode.');
     } finally {
+      window.clearTimeout(timeoutId);
       setLoading(false);
     }
+  };
+
+  const handleAutoFillPreviewOtp = () => {
+    if (!devOtpHint || devOtpHint.length !== 6) return;
+    setOtp(devOtpHint.split(''));
+    setError(null);
   };
 
   const handleOtpChange = (index: number, value: string) => {
@@ -603,25 +624,34 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
 
             {otpNotice && (
-              <div className="p-2.5 rounded-xl bg-[#E8F5FA] border border-[#9FD2D6] text-[11px] font-bold text-slate-700 text-left space-y-1.5">
+              <div className="p-2.5 rounded-xl bg-[#E8F5FA] border border-[#9FD2D6] text-[11px] font-bold text-slate-700 text-left space-y-2">
                 <p>{otpNotice}</p>
                 {devOtpHint && (
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[#9FD2D6]/60">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-[#9FD2D6]/60">
                     <span className="text-[#1E3A8A] font-extrabold">
-                      Kode OTP Pratinjau:{' '}
+                      Kode OTP:{' '}
                       <code className="px-2 py-0.5 rounded bg-white border border-[#377EC0] font-mono text-xs text-[#377EC0]">
                         {devOtpHint}
                       </code>
                     </span>
-                    {otpPreviewHtml && (
+                    <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => setShowOtpInboxPreview((s) => !s)}
-                        className="text-[11px] font-extrabold text-[#377EC0] underline cursor-pointer"
+                        onClick={handleAutoFillPreviewOtp}
+                        className="px-2 py-1 rounded-lg bg-[#377EC0] hover:bg-[#5460AC] text-white text-[10px] font-extrabold cursor-pointer"
                       >
-                        {showOtpInboxPreview ? 'Tutup Email OTP' : 'Lihat Tampilan Email'}
+                        Isi Otomatis
                       </button>
-                    )}
+                      {otpPreviewHtml && (
+                        <button
+                          type="button"
+                          onClick={() => setShowOtpInboxPreview((s) => !s)}
+                          className="text-[11px] font-extrabold text-[#377EC0] underline cursor-pointer"
+                        >
+                          {showOtpInboxPreview ? 'Sembunyikan' : 'Lihat Email'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -633,7 +663,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   srcDoc={otpPreviewHtml}
                   sandbox=""
                   title="Pratinjau Email OTP EVORA"
-                  className="w-full h-56 border-0"
+                  className="w-full h-48 border-0"
                 />
               </div>
             )}
