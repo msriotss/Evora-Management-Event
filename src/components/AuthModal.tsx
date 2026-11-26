@@ -6,19 +6,20 @@ import {
   Sparkles,
   Loader2,
   UserPlus,
+  ExternalLink,
 } from 'lucide-react';
-import { signInWithPopup } from 'firebase/auth';
+import { signInWithPopup, signInWithRedirect } from 'firebase/auth';
 import { auth, googleAuthProvider } from '../lib/firebase';
+import {
+  BroadcastEmailInfo,
+  PENDING_GOOGLE_ROLE_KEY,
+  parseJsonResponse,
+  syncGoogleTokenWithServer,
+} from '../lib/auth-client';
 import { PeekingMascots, RoleMascot, UserRole } from './EvoraMascots';
 import { AvatarConfig, UserAccount } from '../types/evora';
 
-export interface BroadcastEmailInfo {
-  subject: string;
-  delivered: boolean;
-  deliveryMode: string;
-  notice: string;
-  previewHtml: string;
-}
+export type { BroadcastEmailInfo };
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -50,12 +51,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showNewTabHelp, setShowNewTabHelp] = useState(false);
+  const [showSwitchToLogin, setShowSwitchToLogin] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setStep(initialMode);
       setRole(initialRole);
       setError(null);
+      setShowNewTabHelp(false);
+      setShowSwitchToLogin(false);
     }
   }, [isOpen, initialMode, initialRole]);
 
@@ -64,41 +69,74 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const validateEmail = (val: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
 
   const handleGoogleSignIn = async () => {
+    if (loading || googleLoading) return;
     setError(null);
+    setShowNewTabHelp(false);
+    setShowSwitchToLogin(false);
     setGoogleLoading(true);
+
+    const inIframe = (() => {
+      try {
+        return window.self !== window.top;
+      } catch {
+        return true;
+      }
+    })();
+
     try {
       const cred = await signInWithPopup(auth, googleAuthProvider);
       const idToken = await cred.user.getIdToken();
-      const res = await fetch('/api/auth/google', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({ role }),
-      });
-      const data = (await res.json()) as {
-        user?: UserAccount;
-        avatarConfig?: AvatarConfig | null;
-        broadcastEmail?: BroadcastEmailInfo | null;
-        error?: string;
-      };
-      if (!res.ok || !data.user) {
-        setError(data.error || 'Gagal menyinkronkan akun Google.');
-        return;
-      }
+      const synced = await syncGoogleTokenWithServer({ idToken, role });
       onAuthenticated({
-        user: data.user,
-        token: idToken,
-        avatarConfig: data.avatarConfig ?? null,
-        broadcastEmail: data.broadcastEmail ?? null,
+        user: synced.user,
+        token: synced.token,
+        avatarConfig: synced.avatarConfig,
+        broadcastEmail: synced.broadcastEmail,
       });
     } catch (err: unknown) {
-      const msg =
-        err instanceof Error && err.message.includes('popup-closed')
-          ? 'Jendela login Google ditutup sebelum selesai.'
-          : 'Login Google dibatalkan atau gagal. Silakan daftar manual menggunakan formulir di atas.';
-      setError(msg);
+      const firebaseErr = err as { code?: string; message?: string };
+      const code = firebaseErr?.code || '';
+
+      if (
+        !inIframe &&
+        (code === 'auth/popup-blocked' ||
+          code === 'auth/operation-not-supported-in-this-environment' ||
+          code === 'auth/internal-error')
+      ) {
+        try {
+          sessionStorage.setItem(PENDING_GOOGLE_ROLE_KEY, role);
+          await signInWithRedirect(auth, googleAuthProvider);
+          return;
+        } catch (redirectErr) {
+          console.error('Google redirect fallback failed:', redirectErr);
+        }
+      }
+
+      if (code === 'auth/popup-closed-by-user') {
+        setError('Jendela login Google ditutup sebelum selesai. Klik lagi lalu pilih akun Google kamu.');
+      } else if (code === 'auth/cancelled-popup-request') {
+        setError('Permintaan pop-up Google sebelumnya dibatalkan. Silakan klik sekali lagi.');
+      } else if (code === 'auth/popup-blocked' || code === 'auth/internal-error') {
+        setShowNewTabHelp(inIframe);
+        setError(
+          inIframe
+            ? 'Popup login Google diblokir di mode pratinjau/iframe. Izinkan pop-up di browser atau buka EVORA di tab baru.'
+            : 'Popup login Google diblokir browser. Izinkan pop-up untuk situs ini lalu coba lagi.'
+        );
+      } else if (code === 'auth/unauthorized-domain') {
+        setError(
+          `Domain "${window.location.hostname}" belum terdaftar di Firebase Authorized Domains. Gunakan domain resmi EVORA atau Daftar Manual.`
+        );
+      } else if (code === 'auth/network-request-failed') {
+        setError('Koneksi ke layanan Google terganggu. Periksa internet lalu coba lagi.');
+      } else if (err instanceof DOMException && err.name === 'AbortError') {
+        setError('Sinkronisasi akun Google melebihi batas waktu. Coba lagi sebentar.');
+      } else if (err instanceof Error && err.message && !code) {
+        setError(err.message);
+      } else {
+        console.error('Google sign-in error:', code || err);
+        setError('Login Google gagal diproses. Coba izinkan pop-up atau gunakan Daftar Manual.');
+      }
     } finally {
       setGoogleLoading(false);
     }
@@ -106,6 +144,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading || googleLoading) return;
     if (!validateEmail(email)) {
       setError('Masukkan alamat email yang valid.');
       return;
@@ -116,44 +155,61 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     setError(null);
+    setShowNewTabHelp(false);
+    setShowSwitchToLogin(false);
     setLoading(true);
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 15000);
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           email: email.trim(),
           password,
           role,
         }),
       });
-      const data = (await res.json()) as {
+      const parsed = await parseJsonResponse<{
         user?: UserAccount;
         token?: string;
         avatarConfig?: AvatarConfig | null;
         error?: string;
-      };
+      }>(res);
 
-      if (!res.ok || !data.user || !data.token) {
-        setError(data.error || 'Email atau kata sandi salah.');
+      if (!parsed.ok || !parsed.data?.user || !parsed.data?.token) {
+        setError(
+          parsed.data?.error ||
+            (parsed.status >= 500 || parsed.status === 404
+              ? `Server login belum siap (HTTP ${parsed.status}). Pastikan server EVORA aktif.`
+              : 'Email atau kata sandi salah.')
+        );
         return;
       }
 
       onAuthenticated({
-        user: data.user,
-        token: data.token,
-        avatarConfig: data.avatarConfig ?? null,
+        user: parsed.data.user,
+        token: parsed.data.token,
+        avatarConfig: parsed.data.avatarConfig ?? null,
         broadcastEmail: null,
       });
-    } catch {
-      setError('Tidak dapat terhubung ke server autentikasi. Coba lagi sebentar.');
+    } catch (err: unknown) {
+      const isTimeout = err instanceof DOMException && err.name === 'AbortError';
+      setError(
+        isTimeout
+          ? 'Permintaan masuk melebihi batas waktu. Coba lagi sebentar.'
+          : 'Tidak dapat terhubung ke server autentikasi. Coba lagi sebentar.'
+      );
     } finally {
+      window.clearTimeout(timeoutId);
       setLoading(false);
     }
   };
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading || googleLoading) return;
     if (name.trim().length < 2) {
       setError('Masukkan nama lengkap minimal 2 karakter.');
       return;
@@ -168,9 +224,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     setError(null);
+    setShowNewTabHelp(false);
+    setShowSwitchToLogin(false);
     setLoading(true);
     const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 20000);
+    const timeoutId = window.setTimeout(() => controller.abort(), 25000);
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
@@ -183,25 +241,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           role,
         }),
       });
-      const data = (await res.json()) as {
+      const parsed = await parseJsonResponse<{
         ok?: boolean;
         token?: string;
         user?: UserAccount;
         avatarConfig?: AvatarConfig | null;
         broadcastEmail?: BroadcastEmailInfo | null;
         error?: string;
-      };
+      }>(res);
 
-      if (!res.ok || !data.ok || !data.user || !data.token) {
-        setError(data.error || 'Gagal mendaftarkan akun.');
+      if (!parsed.ok || !parsed.data?.ok || !parsed.data?.user || !parsed.data?.token) {
+        if (parsed.status === 409) {
+          setShowSwitchToLogin(true);
+        }
+        setError(
+          parsed.data?.error ||
+            (parsed.status >= 500 || parsed.status === 404
+              ? `Server pendaftaran belum siap (HTTP ${parsed.status}). Pastikan server EVORA aktif.`
+              : 'Gagal mendaftarkan akun.')
+        );
         return;
       }
 
       onAuthenticated({
-        user: data.user,
-        token: data.token,
-        avatarConfig: data.avatarConfig ?? null,
-        broadcastEmail: data.broadcastEmail ?? null,
+        user: parsed.data.user,
+        token: parsed.data.token,
+        avatarConfig: parsed.data.avatarConfig ?? null,
+        broadcastEmail: parsed.data.broadcastEmail ?? null,
       });
     } catch (err: unknown) {
       const isTimeout = err instanceof DOMException && err.name === 'AbortError';
@@ -309,14 +375,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
 
             {error && (
-              <p className="text-xs font-bold text-[#F04F52] text-center bg-[#FDECEC] p-2.5 rounded-xl">
-                {error}
-              </p>
+              <div className="text-xs font-bold text-[#F04F52] text-center bg-[#FDECEC] p-2.5 rounded-xl space-y-2">
+                <p>{error}</p>
+                {showNewTabHelp && typeof window !== 'undefined' && (
+                  <a
+                    href={window.location.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#F04F52]/30 text-[#377EC0] hover:bg-[#E8F5FA] text-[11px] font-extrabold"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    Buka EVORA di Tab Baru
+                  </a>
+                )}
+              </div>
             )}
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || googleLoading}
               className="w-full py-3 bg-[#377EC0] hover:bg-[#5460AC] disabled:opacity-60 text-white text-sm font-extrabold rounded-xl shadow-md shadow-[#377EC0]/25 active:scale-[0.98] transition-all inline-flex items-center justify-center gap-2 cursor-pointer"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -334,7 +411,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <button
               type="button"
               onClick={handleGoogleSignIn}
-              disabled={googleLoading}
+              disabled={loading || googleLoading}
               className="w-full py-2.5 px-4 bg-white hover:bg-[#F4FAFC] border border-[#9FD2D6] text-slate-800 text-xs font-extrabold rounded-xl inline-flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-60"
             >
               {googleLoading ? (
@@ -353,6 +430,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 type="button"
                 onClick={() => {
                   setError(null);
+                  setShowNewTabHelp(false);
+                  setShowSwitchToLogin(false);
                   setStep('register');
                 }}
                 className="font-extrabold text-[#377EC0] hover:underline cursor-pointer"
@@ -412,14 +491,38 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
 
             {error && (
-              <p className="text-xs font-bold text-[#F04F52] text-center bg-[#FDECEC] p-2.5 rounded-xl">
-                {error}
-              </p>
+              <div className="text-xs font-bold text-[#F04F52] text-center bg-[#FDECEC] p-2.5 rounded-xl space-y-2">
+                <p>{error}</p>
+                {showSwitchToLogin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError(null);
+                      setShowSwitchToLogin(false);
+                      setStep('login');
+                    }}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-[#377EC0]/30 text-[#377EC0] hover:bg-[#E8F5FA] text-[11px] font-extrabold cursor-pointer"
+                  >
+                    Langsung ke Halaman Masuk →
+                  </button>
+                )}
+                {showNewTabHelp && typeof window !== 'undefined' && (
+                  <a
+                    href={window.location.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#F04F52]/30 text-[#377EC0] hover:bg-[#E8F5FA] text-[11px] font-extrabold"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    Buka EVORA di Tab Baru
+                  </a>
+                )}
+              </div>
             )}
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || googleLoading}
               className="w-full py-3 bg-[#377EC0] hover:bg-[#5460AC] disabled:opacity-60 text-white text-sm font-extrabold rounded-xl shadow-md shadow-[#377EC0]/25 active:scale-[0.98] transition-all inline-flex items-center justify-center gap-2 cursor-pointer"
             >
               {loading ? (
@@ -433,7 +536,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <button
               type="button"
               onClick={handleGoogleSignIn}
-              disabled={googleLoading}
+              disabled={loading || googleLoading}
               className="w-full py-2.5 px-4 bg-white hover:bg-[#F4FAFC] border border-[#9FD2D6] text-slate-800 text-xs font-extrabold rounded-xl inline-flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-60"
             >
               {googleLoading ? (
@@ -452,6 +555,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 type="button"
                 onClick={() => {
                   setError(null);
+                  setShowNewTabHelp(false);
+                  setShowSwitchToLogin(false);
                   setStep('login');
                 }}
                 className="font-extrabold text-[#377EC0] hover:underline cursor-pointer"

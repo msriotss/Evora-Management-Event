@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { getRedirectResult, signOut } from 'firebase/auth';
 import {
   Menu,
   X,
@@ -9,6 +10,8 @@ import {
   Send,
   Users,
 } from 'lucide-react';
+import { auth } from './lib/firebase';
+import { PENDING_GOOGLE_ROLE_KEY, syncGoogleTokenWithServer } from './lib/auth-client';
 import { BackgroundMascots } from './components/BackgroundMascots';
 import { UserRole } from './components/EvoraMascots';
 import { HeroShowcase } from './components/HeroShowcase';
@@ -71,6 +74,37 @@ export default function App() {
     const handleQuota = () => setQuotaExceeded(true);
     window.addEventListener('gmp-quota-exceeded', handleQuota);
     return () => window.removeEventListener('gmp-quota-exceeded', handleQuota);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (!active || !result?.user) return;
+        const storedRole = sessionStorage.getItem(PENDING_GOOGLE_ROLE_KEY);
+        sessionStorage.removeItem(PENDING_GOOGLE_ROLE_KEY);
+        const targetRole: UserRole =
+          storedRole === 'organizer' || storedRole === 'admin' ? storedRole : 'peserta';
+        const idToken = await result.user.getIdToken();
+        const synced = await syncGoogleTokenWithServer({ idToken, role: targetRole });
+        if (!active) return;
+        setCurrentUser(synced.user);
+        setAuthToken(synced.token);
+        if (synced.avatarConfig) {
+          setAvatar({ ...INITIAL_AVATAR, ...synced.avatarConfig });
+        }
+        if (synced.broadcastEmail) {
+          setBroadcastPreview(synced.broadcastEmail);
+        }
+        setToastMessage(`Selamat datang, ${synced.user.name}! Berhasil masuk dengan Google.`);
+      } catch (err) {
+        console.error('Google redirect completion failed:', err);
+      }
+    })();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const handleUpdateAvatar = (next: AvatarConfig) => {
@@ -539,6 +573,9 @@ export default function App() {
                 onLogout={() => {
                   setCurrentUser(null);
                   setAuthToken(null);
+                  signOut(auth).catch(() => {
+                    // ignore firebase signOut errors
+                  });
                   showToast('Anda telah keluar dari akun.');
                 }}
                 onSubmitNewEvent={handleSubmitNewEvent}

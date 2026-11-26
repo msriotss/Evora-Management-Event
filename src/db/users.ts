@@ -5,13 +5,15 @@ import { emailBroadcasts, users } from './schema.ts';
 export async function getOrCreateGoogleUser(uid: string, email: string, name: string, role = 'peserta') {
   try {
     const cleanEmail = email.trim().toLowerCase();
+    const cleanName = name.trim() || cleanEmail.split('@')[0];
     const existingByEmail = await db.select().from(users).where(eq(users.email, cleanEmail)).limit(1);
     if (existingByEmail[0]) {
       const updated = await db
         .update(users)
         .set({
           uid,
-          name: existingByEmail[0].name || name,
+          name: existingByEmail[0].name || cleanName,
+          role,
           verified: true,
         })
         .where(eq(users.id, existingByEmail[0].id))
@@ -23,7 +25,7 @@ export async function getOrCreateGoogleUser(uid: string, email: string, name: st
       .insert(users)
       .values({
         uid,
-        name: name.trim() || cleanEmail.split('@')[0],
+        name: cleanName,
         email: cleanEmail,
         role,
         verified: true,
@@ -32,6 +34,8 @@ export async function getOrCreateGoogleUser(uid: string, email: string, name: st
         target: users.uid,
         set: {
           email: cleanEmail,
+          name: cleanName,
+          role,
           verified: true,
         },
       })

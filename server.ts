@@ -114,12 +114,16 @@ async function startServer() {
         text: `Selamat bergabung di EVORA, ${userRecord.name}! Gunakan kode promo EVORA20 dan jelajahi rute event di Google Maps EVORA.`,
       });
 
-      await logEmailBroadcast({
-        userId: userRecord.id,
-        recipientEmail: userRecord.email,
-        subject: broadcastSubject,
-        deliveryMode: broadcastResult.deliveryMode,
-      });
+      try {
+        await logEmailBroadcast({
+          userId: userRecord.id,
+          recipientEmail: userRecord.email,
+          subject: broadcastSubject,
+          deliveryMode: broadcastResult.deliveryMode,
+        });
+      } catch (logErr) {
+        console.warn('Non-fatal email broadcast log error:', logErr);
+      }
 
       res.json({
         ok: true,
@@ -227,12 +231,16 @@ async function startServer() {
           html: broadcastHtml,
           text: `Selamat bergabung di EVORA, ${userRecord.name}!`,
         });
-        await logEmailBroadcast({
-          userId: userRecord.id,
-          recipientEmail: userRecord.email,
-          subject: broadcastSubject,
-          deliveryMode: mailRes.deliveryMode,
-        });
+        try {
+          await logEmailBroadcast({
+            userId: userRecord.id,
+            recipientEmail: userRecord.email,
+            subject: broadcastSubject,
+            deliveryMode: mailRes.deliveryMode,
+          });
+        } catch (logErr) {
+          console.warn('Non-fatal Google email broadcast log error:', logErr);
+        }
         broadcastEmail = {
           subject: broadcastSubject,
           delivered: mailRes.delivered,
@@ -242,8 +250,15 @@ async function startServer() {
         };
       }
 
+      const token = signSessionToken({
+        uid: userRecord.uid,
+        email: userRecord.email,
+        role: sanitizeRole(userRecord.role),
+      });
+
       res.json({
         ok: true,
+        token,
         user: {
           id: userRecord.uid,
           name: userRecord.name,
@@ -336,12 +351,16 @@ async function startServer() {
         html,
         text: `Halo ${name}, ini dia broadcast jadwal event seru & promo EVORA20 di EVORA!`,
       });
-      await logEmailBroadcast({
-        userId: userRecord?.id,
-        recipientEmail: req.authUser.email,
-        subject,
-        deliveryMode: result.deliveryMode,
-      });
+      try {
+        await logEmailBroadcast({
+          userId: userRecord?.id,
+          recipientEmail: req.authUser.email,
+          subject,
+          deliveryMode: result.deliveryMode,
+        });
+      } catch (logErr) {
+        console.warn('Non-fatal broadcast log error:', logErr);
+      }
 
       res.json({
         ok: true,

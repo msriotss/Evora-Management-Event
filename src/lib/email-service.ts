@@ -162,9 +162,9 @@ async function trySendViaTransport(params: {
     host: params.host,
     port: params.port,
     secure: params.port === 465,
-    connectionTimeout: 5000,
-    greetingTimeout: 5000,
-    socketTimeout: 7000,
+    connectionTimeout: 2000,
+    greetingTimeout: 2000,
+    socketTimeout: 2500,
     auth: {
       user: params.user,
       pass: params.pass,
@@ -202,45 +202,45 @@ export async function sendEvoraEmail(params: {
     };
   }
 
-  const portsToTry = configuredPort === 465 ? [465, 587] : [configuredPort];
-  let lastError: unknown = null;
-
-  for (const port of portsToTry) {
-    try {
-      await trySendViaTransport({
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      trySendViaTransport({
         host: smtpHost,
-        port,
+        port: configuredPort,
         user: smtpUser,
         pass: smtpPass,
         to: params.to,
         subject: params.subject,
         text: params.text,
         html: params.html,
-      });
+      }),
+      new Promise<never>((_, reject) => {
+        timeoutHandle = setTimeout(() => {
+          const timeoutErr = new Error('SMTP connection timed out') as Error & { code?: string };
+          timeoutErr.code = 'ETIMEDOUT';
+          reject(timeoutErr);
+        }, 2500);
+      }),
+    ]);
 
-      return {
-        delivered: true,
-        deliveryMode: 'smtp-gmail',
-        previewHtml: params.html,
-        notice: `Email resmi berhasil dikirim ke kotak masuk ${params.to}!`,
-      };
-    } catch (err) {
-      lastError = err;
-      const anyErr = err as { code?: string; responseCode?: number };
-      // Do not retry second port on authentication rejection
-      if (anyErr?.code === 'EAUTH' || anyErr?.responseCode === 535) {
-        break;
-      }
-    }
+    return {
+      delivered: true,
+      deliveryMode: 'smtp-gmail',
+      previewHtml: params.html,
+      notice: `Email resmi berhasil dikirim ke kotak masuk ${params.to}!`,
+    };
+  } catch (err) {
+    const errSummary = explainSmtpError(err);
+    console.error('SMTP delivery failed, using instant screen preview:', errSummary);
+    return {
+      delivered: false,
+      deliveryMode: 'preview',
+      previewHtml: params.html,
+      notice: `${errSummary} Pratinjau email tersedia di layar.`,
+    };
+  } finally {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
   }
-
-  const errSummary = explainSmtpError(lastError);
-  console.error('SMTP delivery failed, using instant screen preview:', errSummary);
-  return {
-    delivered: false,
-    deliveryMode: 'preview',
-    previewHtml: params.html,
-    notice: `${errSummary} Pratinjau email tersedia di layar.`,
-  };
 }
 
