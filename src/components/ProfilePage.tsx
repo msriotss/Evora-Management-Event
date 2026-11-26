@@ -537,7 +537,17 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       makeupStyle: pick(['none', 'blush-pink', 'blush-peach', 'freckles', 'pastel-shadow'] as const),
       shirtStyle: pick(['tee', 'ribbon-uniform', 'collar', 'dress', 'aloha', 'hoodie', 'overall'] as const),
       shirtColor: pick(AVATAR_PALETTES.outfit).hex,
-      jacketStyle: pick(['none', 'cardigan', 'denim', 'varsity', 'blazer', 'sweater-vest', 'parka'] as const),
+      jacketStyle: pick([
+        'none',
+        'almet-unj',
+        'jas-pr',
+        'cardigan',
+        'denim',
+        'varsity',
+        'blazer',
+        'sweater-vest',
+        'parka',
+      ] as const),
       jacketColor: pick(AVATAR_PALETTES.outfit).hex,
       shoeStyle: pick(['sneakers', 'loafers', 'maryjane', 'boots'] as const),
       shoeColor: pick(AVATAR_PALETTES.outfit).hex,
@@ -563,11 +573,55 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     triggerReaction('Kembali ke gaya awal EVORA!');
   };
 
-  const handleDownloadIconPng = () => {
+  const handleEquipSpecialOutfit = (preset: 'almet-unj' | 'jas-pr') => {
+    if (preset === 'almet-unj') {
+      setJacketStyle('almet-unj');
+      setJacketColor('#0B5E4F');
+      setShirtStyle('collar');
+      setShirtColor('#FFFFFF');
+      triggerReaction('Bangga pakai Almet UNJ!');
+    } else {
+      setJacketStyle('jas-pr');
+      setJacketColor('#1B1E26');
+      setShirtStyle('collar');
+      setShirtColor('#FFFFFF');
+      setShoeStyle('loafers');
+      setShoeColor('#1B1E26');
+      triggerReaction('Jas PR + Logo PRDC siap bertugas!');
+    }
+  };
+
+  const handleDownloadIconPng = async () => {
     const svgEl = svgRef.current;
     if (!svgEl) return;
     const serializer = new XMLSerializer();
-    const svgString = serializer.serializeToString(svgEl);
+    let svgString = serializer.serializeToString(svgEl);
+
+    const inlineLogoAsset = async (assetPath: string) => {
+      try {
+        const res = await fetch(assetPath);
+        if (!res.ok) return;
+        const blob = await res.blob();
+        const dataUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(String(reader.result || ''));
+          reader.readAsDataURL(blob);
+        });
+        if (dataUrl) {
+          svgString = svgString.replaceAll(`href="${assetPath}"`, `href="${dataUrl}"`);
+        }
+      } catch {
+        // fallback cleanly
+      }
+    };
+
+    if (svgString.includes('/unj-logo.png')) {
+      await inlineLogoAsset('/unj-logo.png');
+    }
+    if (svgString.includes('/prdc-logo.png')) {
+      await inlineLogoAsset('/prdc-logo.png');
+    }
+
     const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(svgBlob);
 
@@ -1281,6 +1335,66 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             {/* 9. BAJU, JAKET & SEPATU */}
             {selectedCategory === 'outfit' && (
               <div className="space-y-6">
+                {/* Preset Outfit Spesial: Almet UNJ & Jas PR PRDC */}
+                <div className="space-y-2.5">
+                  <span className="text-xs font-extrabold text-slate-700 block">
+                    Preset Outfit Spesial Kampus & PR
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleEquipSpecialOutfit('almet-unj')}
+                      className={`p-3 rounded-2xl border-2 text-left flex items-center gap-3 transition-all cursor-pointer ${
+                        jacketStyle === 'almet-unj'
+                          ? 'bg-[#E6F9F7] border-[#0B5E4F] shadow-md'
+                          : 'bg-[#F7FBFD] hover:bg-[#E8F5FA] border-[#9FD2D6]/70'
+                      }`}
+                    >
+                      <div className="w-11 h-11 rounded-xl bg-white border border-[#9FD2D6]/60 p-1.5 flex items-center justify-center shrink-0">
+                        <img
+                          src="/unj-logo.png"
+                          alt="Logo UNJ"
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-pixel text-sm text-slate-900 truncate">
+                          Jaket Almet UNJ
+                        </p>
+                        <p className="text-[11px] font-bold text-slate-500 truncate">
+                          Almet hijau emerald + Logo UNJ
+                        </p>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleEquipSpecialOutfit('jas-pr')}
+                      className={`p-3 rounded-2xl border-2 text-left flex items-center gap-3 transition-all cursor-pointer ${
+                        jacketStyle === 'jas-pr'
+                          ? 'bg-[#E8F5FA] border-[#377EC0] shadow-md'
+                          : 'bg-[#F7FBFD] hover:bg-[#E8F5FA] border-[#9FD2D6]/70'
+                      }`}
+                    >
+                      <div className="w-11 h-11 rounded-xl bg-slate-900 border border-slate-700 p-1 flex items-center justify-center shrink-0">
+                        <img
+                          src="/prdc-logo.png"
+                          alt="Logo PRDC"
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-pixel text-sm text-slate-900 truncate">
+                          Jas PR (Logo PRDC)
+                        </p>
+                        <p className="text-[11px] font-bold text-slate-500 truncate">
+                          Jas hitam · Kemeja putih · Bawahan hitam
+                        </p>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
                 {renderVisualChoiceGrid(
                   'Model Baju (7 Pilihan)',
                   'shirtStyle',
@@ -1307,16 +1421,26 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 })}
 
                 {renderVisualChoiceGrid(
-                  'Jaket & Luaran (7 Pilihan)',
+                  'Jaket & Luaran (9 Pilihan)',
                   'jacketStyle',
                   jacketStyle,
                   (val) => {
+                    if (val === 'almet-unj') {
+                      handleEquipSpecialOutfit('almet-unj');
+                      return;
+                    }
+                    if (val === 'jas-pr') {
+                      handleEquipSpecialOutfit('jas-pr');
+                      return;
+                    }
                     setJacketStyle(val);
                     reactCategory('outfit');
                   },
                   'torso',
                   [
                     { value: 'none', label: 'Tanpa Jaket' },
+                    { value: 'almet-unj', label: 'Almet UNJ' },
+                    { value: 'jas-pr', label: 'Jas PR PRDC' },
                     { value: 'cardigan', label: 'Kardigan' },
                     { value: 'blazer', label: 'Blazer' },
                     { value: 'sweater-vest', label: 'Rompi Rajut' },
@@ -1327,6 +1451,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 )}
 
                 {jacketStyle !== 'none' &&
+                  jacketStyle !== 'jas-pr' &&
                   renderColorRow('Warna Jaket', AVATAR_PALETTES.outfit, jacketColor, (hex) => {
                     setJacketColor(hex);
                     reactCategory('outfit');

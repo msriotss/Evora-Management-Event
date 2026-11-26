@@ -22,15 +22,15 @@ export const StreakFlameBadge: React.FC<StreakFlameBadgeProps> = ({
 
   return (
     <div
-      className={`${sizeClasses} relative flex flex-col items-center justify-center shrink-0 overflow-hidden transition-all duration-700 ease-in-out ${
+      className={`${sizeClasses} relative flex flex-col items-center justify-center shrink-0 overflow-hidden border-2 transition-all duration-700 ease-in-out ${
         isFrozen
-          ? 'bg-gradient-to-br from-[#E8F5FA] via-[#9FD2D6] to-[#377EC0] ring-2 ring-[#377EC0]/60 flame-glow-frozen'
-          : 'bg-gradient-to-br from-[#FBDF54] via-[#F7891F] to-[#F04F52] flame-glow-burning'
+          ? 'bg-gradient-to-br from-[#E8F5FA] via-[#9FD2D6] to-[#377EC0] border-[#377EC0]/45 flame-glow-frozen'
+          : 'bg-gradient-to-br from-[#FBDF54] via-[#F7891F] to-[#F04F52] border-[#F7891F] flame-glow-burning'
       }`}
       title={
         isFrozen
-          ? 'Api Streak Beku — Terlindungi Es'
-          : 'Api Streak Masih Menyala!'
+          ? 'Api Belum Menyala — Daftar akun & ikut kepanitiaan untuk menyalakan api!'
+          : 'Api Streak Panitia Menyala!'
       }
     >
       {/* Cross-fading Burning vs Frozen SVG Container */}
@@ -71,7 +71,7 @@ export const StreakFlameBadge: React.FC<StreakFlameBadgeProps> = ({
         >
           <polygon
             points="32,4 54,22 50,50 32,60 14,50 10,22"
-            fill="#9FD2D6"
+            fill="#BAE6FD"
             stroke="#FFFFFF"
             strokeWidth="2.5"
             strokeLinejoin="round"
@@ -94,9 +94,9 @@ export const StreakFlameBadge: React.FC<StreakFlameBadgeProps> = ({
       </div>
 
       <span
-        className={`relative z-10 font-pixel leading-none mt-0.5 tabular-nums transition-colors duration-700 ${
-          size === 'sm' ? 'text-[10px]' : size === 'lg' ? 'text-base' : 'text-xs'
-        } ${isFrozen ? 'text-[#1E3A8A]' : 'text-white'}`}
+        className={`relative z-10 font-arcade leading-none mt-0.5 tabular-nums transition-colors duration-700 ${
+          size === 'sm' ? 'text-[10px]' : size === 'lg' ? 'text-sm' : 'text-[11px]'
+        } ${isFrozen ? 'text-[#0F2347]' : 'text-white'}`}
       >
         {days}d
       </span>

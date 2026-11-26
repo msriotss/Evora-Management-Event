@@ -1,8 +1,8 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Eye, EyeOff, Check, Ticket, CalendarPlus, ShieldCheck, ArrowLeft } from 'lucide-react';
 import { EvoraHeroMascot, PeekingMascots, RoleMascot, UserRole } from './EvoraMascots';
 
-export type AuthView = 'login' | 'register' | 'otp' | 'dashboard';
+export type AuthView = 'login' | 'register' | 'dashboard';
 
 interface PhoneMockupProps {
   view: AuthView;
@@ -41,8 +41,6 @@ export const PhoneMockup: React.FC<PhoneMockupProps> = ({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [otp, setOtp] = useState<string[]>(['5', '2', '9', '']);
-  const [otpResent, setOtpResent] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [pesertaEvents, setPesertaEvents] = useState<MiniEvent[]>([
@@ -60,54 +58,14 @@ export const PhoneMockup: React.FC<PhoneMockupProps> = ({
     { id: '2', title: 'Tech Campus Expo', organizer: 'HMIF Karya', status: 'pending' },
   ]);
 
-  const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
-
-  const handleOtpChange = (index: number, value: string) => {
-    const clean = value.replace(/\D/g, '').slice(-1);
-    const next = [...otp];
-    next[index] = clean;
-    setOtp(next);
-    setErrorMsg(null);
-    if (clean && index < 3) {
-      otpRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      otpRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4);
-    if (!pasted) return;
-    e.preventDefault();
-    const next = ['', '', '', ''];
-    for (let i = 0; i < pasted.length; i++) {
-      next[i] = pasted[i];
-    }
-    setOtp(next);
-    const focusIndex = Math.min(pasted.length, 3);
-    otpRefs.current[focusIndex]?.focus();
-  };
-
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
-    onChangeView('otp');
+    onChangeView('dashboard');
   };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg(null);
-    onChangeView('otp');
-  };
-
-  const handleVerifyOtp = () => {
-    if (otp.some((d) => d === '')) {
-      setOtp(['5', '2', '9', '4']);
-    }
     setErrorMsg(null);
     onChangeView('dashboard');
   };
@@ -206,7 +164,7 @@ export const PhoneMockup: React.FC<PhoneMockupProps> = ({
                 Masuk
               </button>
 
-              <div className="pt-2 text-center space-y-1.5">
+              <div className="pt-2 text-center">
                 <p className="text-[11px] text-slate-500">
                   Belum punya akun?{' '}
                   <button
@@ -217,13 +175,6 @@ export const PhoneMockup: React.FC<PhoneMockupProps> = ({
                     Daftar
                   </button>
                 </p>
-                <button
-                  type="button"
-                  onClick={() => onChangeView('otp')}
-                  className="text-[10px] font-medium text-slate-400 hover:text-slate-600 cursor-pointer"
-                >
-                  Verifikasi email / OTP
-                </button>
               </div>
             </form>
           )}
@@ -277,65 +228,7 @@ export const PhoneMockup: React.FC<PhoneMockupProps> = ({
             </form>
           )}
 
-          {/* VIEW 3: OTP */}
-          {view === 'otp' && (
-            <div className="space-y-4 text-center">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">Verifikasi OTP</h3>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Masukkan kode 4 digit dari email kamu
-                </p>
-              </div>
-              <div className="flex justify-center gap-2.5 py-1">
-                {otp.map((digit, idx) => (
-                  <input
-                    key={idx}
-                    ref={(el) => {
-                      otpRefs.current[idx] = el;
-                    }}
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={1}
-                    value={digit}
-                    placeholder="•"
-                    aria-label={`Digit OTP ke-${idx + 1}`}
-                    onChange={(e) => handleOtpChange(idx, e.target.value)}
-                    onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                    onPaste={handleOtpPaste}
-                    className="w-11 h-12 text-center text-sm font-bold tabular-nums bg-slate-100 rounded-xl focus:bg-white focus:ring-2 focus:ring-violet-400 focus:outline-none transition-all"
-                  />
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={handleVerifyOtp}
-                className="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-xl shadow-md shadow-violet-600/20 active:scale-[0.98] transition-all cursor-pointer"
-              >
-                Verifikasi & Masuk
-              </button>
-              <div className="flex items-center justify-center gap-4">
-                <button
-                  type="button"
-                  onClick={() => onChangeView('login')}
-                  className="text-[11px] text-slate-400 hover:text-violet-600 transition-colors cursor-pointer"
-                >
-                  ← Kembali
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOtpResent(true);
-                    setTimeout(() => setOtpResent(false), 2500);
-                  }}
-                  className="text-[11px] font-semibold text-violet-600 hover:underline cursor-pointer"
-                >
-                  {otpResent ? 'Kode terkirim!' : 'Kirim ulang'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* VIEW 4: ROLE DASHBOARD PREVIEW */}
+          {/* VIEW 3: ROLE DASHBOARD PREVIEW */}
           {view === 'dashboard' && (
             <div className="flex flex-col h-full justify-between py-2">
               <div>

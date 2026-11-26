@@ -3,7 +3,6 @@ import {
   Menu,
   X,
   ArrowRight,
-  Bot,
   MessageCircle,
   Mail,
   Instagram,
@@ -22,7 +21,6 @@ import { EventQuestGame } from './components/EventQuestGame';
 import { ChibiAvatar } from './components/ChibiAvatar';
 import { ProfilePage } from './components/ProfilePage';
 import { AppRoadmapPath } from './components/AppRoadmapPath';
-import { AiAssistantModal } from './components/AiAssistantModal';
 import { INITIAL_AVATAR, INITIAL_EVENTS, INITIAL_ORDERS, INITIAL_STREAK } from './data/initialData';
 import { AvatarConfig, EventItem, StreakState, TicketOrder, UserAccount } from './types/evora';
 
@@ -60,8 +58,7 @@ export default function App() {
   // 2D Mini-Game state
   const [gameOpen, setGameOpen] = useState(false);
 
-  // Bot AI & Feedback state
-  const [aiBotOpen, setAiBotOpen] = useState(false);
+  // Feedback state
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackSubject, setFeedbackSubject] = useState('');
   const [feedbackBody, setFeedbackBody] = useState('');
@@ -133,44 +130,40 @@ export default function App() {
     }
   };
 
-  const handleToggleStreakFreeze = () => {
-    setStreak((prev) => {
-      const nextFrozen = !prev.isFrozen;
-      showToast(
-        nextFrozen
-          ? 'Mode Api Beku diaktifkan — streak panitia tetap aman terlindungi es!'
-          : 'Api Streak kembali menyala terang!'
-      );
-      return {
-        ...prev,
-        isFrozen: nextFrozen,
-      };
-    });
+  const hasPanitiaParticipation =
+    joinedPanitiaEventIds.length > 0 || streak.monthlyEventsHosted > 0;
+  const isPanitiaFlameLit = Boolean(currentUser) && hasPanitiaParticipation;
+  const effectiveStreak: StreakState = {
+    ...streak,
+    isFrozen: !isPanitiaFlameLit,
   };
 
   const bumpTodayStreak = (extraHosted = 0, extraJoined = 0) => {
     setStreak((prev) => {
-      const hasToday = prev.activeDaysInMonth.includes(25);
-      const nextDays = hasToday ? prev.currentDays : prev.currentDays + 1;
+      const hasToday = prev.activeDaysInMonth.includes(26);
+      const nextDays = hasToday ? prev.currentDays : Math.max(1, prev.currentDays + 1);
       return {
         ...prev,
-        isFrozen: false,
         currentDays: nextDays,
         longestDays: Math.max(prev.longestDays, nextDays),
         monthlyEventsHosted: prev.monthlyEventsHosted + extraHosted,
         monthlyEventsJoined: prev.monthlyEventsJoined + extraJoined,
-        activeDaysInMonth: hasToday ? prev.activeDaysInMonth : [...prev.activeDaysInMonth, 25],
+        activeDaysInMonth: hasToday ? prev.activeDaysInMonth : [...prev.activeDaysInMonth, 26],
       };
     });
   };
 
   const handleJoinEventAsPanitia = (ev: EventItem) => {
+    if (!currentUser) {
+      openAuth('register', 'organizer');
+      showToast('Daftar akun & ikut kepanitiaan dulu agar api streakmu menyala!');
+      return;
+    }
     if (joinedPanitiaEventIds.includes(ev.id)) return;
     setJoinedPanitiaEventIds((prev) => [...prev, ev.id]);
     bumpTodayStreak(1, 0);
     setStreak((prev) => ({
       ...prev,
-      isFrozen: false,
       completedDailyGoals: prev.completedDailyGoals.includes('goal-panitia')
         ? prev.completedDailyGoals
         : [...prev.completedDailyGoals, 'goal-panitia'],
@@ -323,7 +316,6 @@ export default function App() {
       const exists = prev.completedDailyGoals.includes(goalId);
       return {
         ...prev,
-        isFrozen: exists ? prev.isFrozen : false,
         completedDailyGoals: exists
           ? prev.completedDailyGoals.filter((g) => g !== goalId)
           : [...prev.completedDailyGoals, goalId],
@@ -346,7 +338,6 @@ export default function App() {
 
       return {
         ...prev,
-        isFrozen: false,
         questBestScore: Math.max(prev.questBestScore, score),
         unlockedPets: nextPets,
         completedDailyGoals: nextGoals,
@@ -377,8 +368,8 @@ export default function App() {
         </div>
       )}
 
-      {/* TOP BAR (3-Zone Contract + Blue Theme + Live Avatar Icon) */}
-      <header className="sticky top-0 z-40 bg-[#E8F5FA]/90 backdrop-blur-md border-b border-[#9FD2D6]/60">
+      {/* TOP BAR (Logo EVORA + Main Blue #377EC0 Theme + Live Avatar Icon) */}
+      <header className="sticky top-0 z-40 bg-[#E8F5FA]/90 backdrop-blur-md border-b-2 border-[#9FD2D6]/70">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-6">
           <a
             href="#top"
@@ -387,13 +378,18 @@ export default function App() {
               setActivePage('home');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className="font-pixel text-2xl tracking-tight text-[#377EC0] whitespace-nowrap shrink-0"
+            className="inline-flex items-center px-2.5 py-1 rounded-2xl bg-white border-2 border-[#9FD2D6] shadow-[0_3px_0_rgba(55,126,192,0.18)] hover:scale-[1.02] transition-transform shrink-0"
+            aria-label="EVORA Beranda"
           >
-            EVORA
+            <img
+              src="/evora-logo.png"
+              alt="Logo EVORA"
+              className="h-8 sm:h-9 w-auto object-contain"
+            />
           </a>
 
           <nav
-            className="hidden md:flex items-center gap-6 text-sm font-extrabold text-slate-700"
+            className="hidden md:flex items-center gap-6 text-sm font-extrabold text-[#0F2347]"
             aria-label="Navigasi utama"
           >
             <button
@@ -435,7 +431,7 @@ export default function App() {
               title="Buka Halaman Profil & Ganti Avatar"
               aria-label="Buka Halaman Profil & Ganti Avatar"
               className={`w-10 h-10 rounded-full bg-white flex items-center justify-center border-2 transition-transform hover:scale-105 cursor-pointer overflow-hidden shadow-sm ${
-                activePage === 'profile' ? 'border-[#377EC0] ring-2 ring-[#9FD2D6]' : 'border-[#9FD2D6]'
+                activePage === 'profile' ? 'border-[#377EC0] ring-2 ring-[#FBDF54]' : 'border-[#9FD2D6]'
               }`}
             >
               <ChibiAvatar
@@ -450,7 +446,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => scrollToSection('workspace')}
-                className="px-4 py-2 text-xs sm:text-sm font-extrabold text-white bg-[#377EC0] hover:bg-[#5460AC] rounded-xl shadow-sm transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                className="px-4 py-2 text-xs sm:text-sm font-extrabold text-white bg-[#377EC0] hover:bg-[#5460AC] rounded-xl shadow-[0_3px_0_#1E4E7E] transition-all whitespace-nowrap shrink-0 cursor-pointer"
               >
                 {currentUser.name}
               </button>
@@ -458,7 +454,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => openAuth('login', 'peserta')}
-                className="px-5 py-2 text-xs sm:text-sm font-extrabold text-white bg-[#377EC0] hover:bg-[#5460AC] rounded-xl shadow-sm transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                className="px-5 py-2 text-xs sm:text-sm font-extrabold text-white bg-[#377EC0] hover:bg-[#5460AC] rounded-xl shadow-[0_3px_0_#1E4E7E] transition-all whitespace-nowrap shrink-0 cursor-pointer"
               >
                 Masuk
               </button>
@@ -538,7 +534,7 @@ export default function App() {
                 currentUser={currentUser}
                 events={events}
                 orders={orders}
-                streak={streak}
+                streak={effectiveStreak}
                 onSwitchRole={(role) => setCurrentUser({ ...currentUser, role })}
                 onLogout={() => {
                   setCurrentUser(null);
@@ -558,12 +554,12 @@ export default function App() {
             ) : (
               <section id="daftar-panitia" className="pt-5 pb-2">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                  <div className="bg-white/95 backdrop-blur-md rounded-[28px] p-4 sm:px-6 sm:py-4 border border-[#9FD2D6]/70 shadow-lg shadow-[#377EC0]/10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  <div className="bg-white/95 backdrop-blur-md rounded-[28px] p-4 sm:px-6 sm:py-4 pixel-card flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div className="flex items-center gap-3.5">
                       <button
                         type="button"
                         onClick={openProfilePage}
-                        className="w-12 h-12 rounded-2xl bg-[#E8F5FA] border border-[#9FD2D6] flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:scale-105 transition-transform"
+                        className="w-12 h-12 rounded-2xl bg-[#E8F5FA] border-2 border-[#9FD2D6] flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:scale-105 transition-transform"
                         title="Lihat Profil Avatar"
                       >
                         <ChibiAvatar
@@ -575,29 +571,29 @@ export default function App() {
                         />
                       </button>
                       <div>
-                        <p className="text-xs sm:text-sm font-extrabold text-slate-900">
+                        <p className="text-xs sm:text-sm font-extrabold text-[#0F2347]">
                           Tamu (Belum Sign In / Sign Up)
                         </p>
-                        <p className="text-[11px] sm:text-xs font-bold text-[#F7891F]">
-                          Khusus Penyelenggara & Komunitas · Daftar jadi panitia, pin Google Maps & kumpulkan streak bulanan!
+                        <p className="text-[11px] sm:text-xs font-bold text-[#377EC0]">
+                          Khusus Penyelenggara & Komunitas · Daftar manual & ikut kepanitiaan untuk menyalakan api streak!
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    <div className="flex flex-wrap items-center gap-2.5 shrink-0">
                       <button
                         type="button"
                         onClick={() => openAuth('register', 'organizer')}
-                        className="px-4 py-2.5 rounded-xl bg-[#377EC0] hover:bg-[#5460AC] text-white text-xs font-extrabold inline-flex items-center gap-1.5 shadow-sm cursor-pointer transition-colors"
+                        className="px-4 py-2.5 rounded-xl bg-[#377EC0] hover:bg-[#5460AC] text-white text-xs font-extrabold inline-flex items-center gap-1.5 pixel-btn cursor-pointer"
                       >
-                        <Users className="w-3.5 h-3.5" />
+                        <Users className="w-3.5 h-3.5 text-[#FBDF54]" />
                         Registrasi Akun Panitia
                         <ArrowRight className="w-3.5 h-3.5" />
                       </button>
                       <button
                         type="button"
                         onClick={() => openAuth('login', 'peserta')}
-                        className="px-4 py-2.5 rounded-xl bg-[#E8F5FA] hover:bg-[#9FD2D6]/50 text-[#377EC0] text-xs font-extrabold cursor-pointer transition-colors"
+                        className="px-4 py-2.5 rounded-xl bg-[#E8F5FA] hover:bg-[#9FD2D6]/50 text-[#377EC0] border border-[#9FD2D6] text-xs font-extrabold cursor-pointer transition-colors"
                       >
                         Sign In / Sign Up
                       </button>
@@ -612,13 +608,13 @@ export default function App() {
               avatar={avatar}
               userName={currentUser?.name ?? null}
               isAuthenticated={Boolean(currentUser)}
-              isFrozen={streak.isFrozen}
+              isFrozen={effectiveStreak.isFrozen}
               onExploreMap={() => scrollToSection('peta-event')}
               onOpenAuth={openAuth}
               onOpenGame={() => setGameOpen(true)}
               onOpenProfile={openProfilePage}
-              streakDays={streak.currentDays}
-              monthlyHosted={streak.monthlyEventsHosted}
+              streakDays={effectiveStreak.currentDays}
+              monthlyHosted={effectiveStreak.monthlyEventsHosted}
             />
 
             {/* 3. INTERACTIVE REAL-TIME GOOGLE MAPS & SCHEDULE EXPLORER */}
@@ -630,13 +626,16 @@ export default function App() {
               onBecomeOrganizer={() => openAuth('register', 'organizer')}
             />
 
-            {/* 4. TIKTOK-STYLE STREAK PANITIA BULANAN & MISI HARIAN */}
+            {/* 4. STREAK PANITIA BULANAN & KALENDER */}
             <StreakTracker
-              streak={streak}
+              streak={effectiveStreak}
               onToggleGoal={handleToggleDailyGoal}
-              onToggleFreeze={handleToggleStreakFreeze}
               onOpenGame={() => setGameOpen(true)}
-              onCreateEventClick={() => openAuth('register', 'organizer')}
+              onCreateEventClick={() =>
+                currentUser
+                  ? scrollToSection(currentUser.role === 'organizer' ? 'workspace' : 'peta-event')
+                  : openAuth('register', 'organizer')
+              }
             />
 
             {/* 5. PETA JALAN ALUR APLIKASI (STEP-BY-STEP ROADMAP) */}
@@ -650,17 +649,24 @@ export default function App() {
         )}
       </main>
 
-      {/* CREATOR, CUSTOMER SERVICE WA, INSTAGRAM, BOT AI & GMAIL FEEDBACK FOOTER */}
-      <footer className="relative z-10 border-t border-[#9FD2D6]/60 bg-white/80 backdrop-blur-md py-6">
+      {/* CREATOR, CUSTOMER SERVICE WA, INSTAGRAM & GMAIL FEEDBACK FOOTER */}
+      <footer className="relative z-10 border-t-2 border-[#9FD2D6]/60 bg-white/90 backdrop-blur-md py-6">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="text-center md:text-left">
-              <p className="font-pixel text-lg text-[#1E3A8A]">
-                Muhammad Satrio Wibisono
-              </p>
-              <p className="text-xs font-bold text-slate-500">
-                Ada keluh kesah, masukan, atau butuh bantuan? Hubungi layanan di samping.
-              </p>
+            <div className="flex items-center gap-3 text-center md:text-left">
+              <img
+                src="/evora-logo.png"
+                alt="Logo EVORA"
+                className="hidden sm:block h-10 w-auto object-contain shrink-0"
+              />
+              <div>
+                <p className="font-pixel text-lg text-[#0F2347]">
+                  Muhammad Satrio Wibisono
+                </p>
+                <p className="text-xs font-bold text-slate-500">
+                  Ada keluh kesah, masukan, atau butuh bantuan? Hubungi layanan di samping.
+                </p>
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-2.5">
@@ -683,15 +689,6 @@ export default function App() {
                 <MessageCircle className="w-4 h-4" />
                 CS WhatsApp: 089603963329
               </a>
-
-              <button
-                type="button"
-                onClick={() => setAiBotOpen(true)}
-                className="min-h-[40px] px-3.5 py-2 rounded-xl bg-[#377EC0] hover:bg-[#5460AC] text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
-              >
-                <Bot className="w-4 h-4 text-[#FBDF54]" />
-                Bot AI EVORA
-              </button>
 
               <button
                 type="button"
@@ -783,17 +780,6 @@ export default function App() {
         </div>
       </footer>
 
-      {/* Floating Bot AI Launcher */}
-      <button
-        type="button"
-        onClick={() => setAiBotOpen(true)}
-        aria-label="Buka Bot AI EVORA"
-        className="fixed bottom-5 right-5 z-40 px-4 py-3 rounded-full bg-[#377EC0] hover:bg-[#5460AC] text-white text-xs font-extrabold shadow-xl shadow-[#377EC0]/30 border-2 border-white inline-flex items-center gap-2 cursor-pointer transition-transform hover:scale-105"
-      >
-        <Bot className="w-4 h-4 text-[#FBDF54]" />
-        <span>Bot AI</span>
-      </button>
-
       {/* MODALS & GAME SHELL */}
       <AuthModal
         isOpen={authModalOpen}
@@ -821,12 +807,6 @@ export default function App() {
         bestScore={streak.questBestScore}
         onClose={() => setGameOpen(false)}
         onCompleteRound={handleGameComplete}
-      />
-
-      <AiAssistantModal
-        isOpen={aiBotOpen}
-        onClose={() => setAiBotOpen(false)}
-        userName={currentUser?.name ?? null}
       />
     </div>
   );

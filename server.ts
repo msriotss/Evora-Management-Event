@@ -3,32 +3,23 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
 import {
-  createOtpChallenge,
   findUserByEmail,
   findUserByUid,
-  getLatestOtpChallenge,
   getOrCreateGoogleUser,
-  incrementOtpAttempt,
   logEmailBroadcast,
-  markOtpConsumed,
   saveUserAvatar,
   upsertVerifiedEmailUser,
 } from './src/db/users.ts';
 import {
   AuthenticatedRequest,
-  generateSixDigitOtp,
-  hashOtp,
   hashPassword,
   requireAuth,
   signSessionToken,
-  verifyOtpHash,
   verifyPassword,
 } from './src/lib/auth-server.ts';
 import {
-  buildOtpEmailHtml,
   buildWelcomeBroadcastEmailHtml,
   sendEvoraEmail,
 } from './src/lib/email-service.ts';
@@ -52,44 +43,11 @@ function sanitizeRole(role: unknown): 'peserta' | 'organizer' | 'admin' {
   return 'peserta';
 }
 
-const EVORA_SYSTEM_INSTRUCTION = `Kamu adalah Bot AI EVORA, asisten virtual resmi yang ramah, rapi, dan sistematis untuk platform manajemen event EVORA (karya Muhammad Satrio Wibisono).
-
-SELALU jawab dengan format yang TERSTRUKTUR dan SISTEMATIS menggunakan:
-- Judul singkat atau ringkasan 1 kalimat di awal
-- Poin bernomor (1., 2., 3.) untuk langkah-langkah berurutan
-- Bullet (-) dengan penekanan **kata kunci tebal** untuk daftar fitur atau pilihan
-- Paragraf ringkas (hindari dinding teks panjang)
-
-Pengetahuan resmi EVORA yang wajib kamu kuasai dan jelaskan secara sistematis bila ditanya:
-
-1. **Apa Saja yang Bisa Dilakukan di Website EVORA**:
-   - **Jelajahi Peta & Rute Google Maps Real-Time**: Lihat lokasi event di Indonesia, cari area lewat Google Places, aktifkan GPS real-time, hitung jalur rute langsung di peta, lalu klik **"Buka Rute di Google Maps"** untuk navigasi langsung.
-   - **Mode Jalur Jadwal (Timeline)**: Pantau urutan tanggal & rundown acara secara kronologis.
-   - **Beli Tiket & E-Tiket QR (Peserta)**: Pilih kategori tiket, gunakan kode promo (mis. \`EVORA20\`, \`DESIGN15\`), dapatkan e-tiket QR, pengingat H-1, check-in acara, dan unduh sertifikat kehadiran.
-   - **Gabung atau Buat Event (Panitia / Organizer)**: Klik **"Ikut Jadi Panitia (+1 Streak)"** di kartu event atau ajukan event baru dari Dashboard Panitia (mendukung 3 langkah wizard, check-in QR peserta, dan laporan evaluasi).
-   - **Streak Panitia Bulanan & Mini Quest**: Kumpulkan streak aktif tiap bulan (dengan animasi api menyala & mode beku pelindung es) serta mainkan mini-game EVORA Quest untuk membuka maskot.
-   - **Kamar Ganti Avatar Chibi Estetik**: Setelah Sign In / Sign Up, buka halaman **Profil & Avatar** untuk mengubah bentuk wajah, alis, warna kulit & riasan, mata, hidung, mulut, rambut, baju, jaket, sepatu, hingga aksesoris di dalam kamar lemari estetik, lalu simpan atau unduh sebagai Icon PNG.
-   - **Verifikasi Admin Platform**: Role Admin mereview pengajuan event panitia (Publikasikan ke Peta atau Kirim Catatan Revisi).
-
-2. **Cara Daftar & Login (Verifikasi OTP Gmail + Broadcast Sambutan)**:
-   - Klik tombol **Sign In / Sign Up** atau **Registrasi Akun Panitia** di bar atas.
-   - Pilih peran akun: **Peserta**, **Panitia**, atau **Admin**.
-   - Isi **Nama Lengkap**, **Email Gmail aktif**, dan **Kata Sandi** (minimal 6 karakter), lalu klik **Kirim Kode OTP ke Gmail**.
-   - Sistem akan mengirim **6 digit kode OTP** ke alamat Gmail kamu (berlaku 10 menit). Masukkan kode OTP tersebut di layar verifikasi.
-   - Setelah OTP terverifikasi, akun aktif di database dan kamu langsung menerima **Email Welcome Broadcast EVORA** berisi sorotan event bulan ini, kode promo, dan panduan ringkas!
-   - Alternatif cepat: Tersedia juga tombol **Masuk dengan Google** untuk login instan memakai akun Google.
-
-3. **Layanan Bantuan & Kontak Resmi Creator**:
-   - **Creator**: Muhammad Satrio Wibisono
-   - **Instagram**: @msriotsss
-   - **Customer Service WhatsApp**: 089603963329
-   - **Email Keluh Kesah & Masukan**: msriotss@gmail.com`;
-
 async function startServer() {
   const app = express();
   app.use(express.json({ limit: '1mb' }));
 
-  // ================= AUTH: REGISTER (SEND 6-DIGIT OTP TO GMAIL) =================
+  // ================= AUTH: MANUAL REGISTER =================
   app.post('/api/auth/register', async (req, res) => {
     const { name, email, password, role } = req.body as {
       name?: string;
@@ -108,7 +66,7 @@ async function startServer() {
       return;
     }
     if (!isValidEmail(cleanEmail)) {
-      res.status(400).json({ error: 'Masukkan alamat email Gmail yang valid.' });
+      res.status(400).json({ error: 'Masukkan alamat email yang valid.' });
       return;
     }
     if (cleanPassword.length < 6) {
@@ -118,161 +76,27 @@ async function startServer() {
 
     try {
       const existing = await findUserByEmail(cleanEmail);
-      if (existing && existing.verified && existing.passwordHash) {
+      if (existing && existing.passwordHash) {
         res.status(409).json({
-          error: 'Email ini sudah terdaftar dan terverifikasi. Silakan langsung Masuk (Login).',
+          error: 'Email ini sudah terdaftar. Silakan langsung Masuk (Login).',
         });
         return;
       }
 
-      const otp = generateSixDigitOtp();
-      const otpHash = hashOtp(cleanEmail, otp);
+      const uid = existing?.uid || `evr_${crypto.randomUUID()}`;
       const passwordHash = hashPassword(cleanPassword);
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-
-      await createOtpChallenge({
-        email: cleanEmail,
-        name: cleanName,
-        role: cleanRole,
-        passwordHash,
-        otpHash,
-        expiresAt,
-      });
-
-      const html = buildOtpEmailHtml({
-        name: cleanName,
-        email: cleanEmail,
-        role: cleanRole,
-        otp,
-      });
-
-      const mailResult = await sendEvoraEmail({
-        to: cleanEmail,
-        subject: `[EVORA] Kode OTP Verifikasi Akun: ${otp}`,
-        html,
-        text: `Halo ${cleanName}, kode OTP verifikasi akun EVORA kamu adalah: ${otp} (berlaku 10 menit).`,
-      });
-
-      res.json({
-        ok: true,
-        email: cleanEmail,
-        delivered: mailResult.delivered,
-        deliveryMode: mailResult.deliveryMode,
-        notice: mailResult.notice,
-        otpPreviewHtml: mailResult.previewHtml,
-        devOtpHint: mailResult.deliveryMode === 'preview' ? otp : undefined,
-      });
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : 'Gagal memproses pendaftaran.';
-      res.status(500).json({ error: msg });
-    }
-  });
-
-  // ================= AUTH: RESEND OTP =================
-  app.post('/api/auth/resend-otp', async (req, res) => {
-    const cleanEmail = String(req.body?.email || '').trim().toLowerCase();
-    if (!isValidEmail(cleanEmail)) {
-      res.status(400).json({ error: 'Email tidak valid.' });
-      return;
-    }
-
-    try {
-      const latest = await getLatestOtpChallenge(cleanEmail);
-      if (!latest) {
-        res.status(404).json({ error: 'Belum ada pendaftaran aktif untuk email ini.' });
-        return;
-      }
-
-      const otp = generateSixDigitOtp();
-      const otpHash = hashOtp(cleanEmail, otp);
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-
-      await createOtpChallenge({
-        email: cleanEmail,
-        name: latest.name,
-        role: latest.role,
-        passwordHash: latest.passwordHash,
-        otpHash,
-        expiresAt,
-      });
-
-      const html = buildOtpEmailHtml({
-        name: latest.name,
-        email: cleanEmail,
-        role: latest.role,
-        otp,
-      });
-
-      const mailResult = await sendEvoraEmail({
-        to: cleanEmail,
-        subject: `[EVORA] Kode OTP Baru: ${otp}`,
-        html,
-        text: `Halo ${latest.name}, kode OTP baru EVORA kamu adalah: ${otp} (berlaku 10 menit).`,
-      });
-
-      res.json({
-        ok: true,
-        email: cleanEmail,
-        delivered: mailResult.delivered,
-        deliveryMode: mailResult.deliveryMode,
-        notice: mailResult.notice,
-        otpPreviewHtml: mailResult.previewHtml,
-        devOtpHint: mailResult.deliveryMode === 'preview' ? otp : undefined,
-      });
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : 'Gagal mengirim ulang OTP.';
-      res.status(500).json({ error: msg });
-    }
-  });
-
-  // ================= AUTH: VERIFY OTP & SEND FUN WELCOME BROADCAST TO GMAIL =================
-  app.post('/api/auth/verify-otp', async (req, res) => {
-    const cleanEmail = String(req.body?.email || '').trim().toLowerCase();
-    const cleanOtp = String(req.body?.otp || '').replace(/\D/g, '');
-
-    if (!isValidEmail(cleanEmail) || cleanOtp.length !== 6) {
-      res.status(400).json({ error: 'Masukkan email dan 6 digit kode OTP dengan benar.' });
-      return;
-    }
-
-    try {
-      const challenge = await getLatestOtpChallenge(cleanEmail);
-      if (!challenge || challenge.consumed) {
-        res.status(400).json({ error: 'Kode OTP tidak ditemukan atau sudah digunakan. Kirim ulang kode baru.' });
-        return;
-      }
-      if (new Date(challenge.expiresAt).getTime() < Date.now()) {
-        res.status(400).json({ error: 'Kode OTP sudah kedaluwarsa (>10 menit). Silakan kirim ulang OTP.' });
-        return;
-      }
-      if (challenge.attempts >= 5) {
-        res.status(429).json({ error: 'Terlalu banyak percobaan salah. Silakan kirim ulang OTP baru.' });
-        return;
-      }
-
-      if (!verifyOtpHash(cleanEmail, cleanOtp, challenge.otpHash)) {
-        await incrementOtpAttempt(challenge.id, challenge.attempts);
-        res.status(400).json({
-          error: `Kode OTP salah. Sisa percobaan: ${Math.max(0, 4 - challenge.attempts)}x.`,
-        });
-        return;
-      }
-
-      await markOtpConsumed(challenge.id);
-
-      const uid = `evr_${crypto.randomUUID()}`;
       const userRecord = await upsertVerifiedEmailUser({
         uid,
-        name: challenge.name,
+        name: cleanName,
         email: cleanEmail,
-        passwordHash: challenge.passwordHash,
-        role: challenge.role,
+        passwordHash,
+        role: cleanRole,
       });
 
       const token = signSessionToken({
         uid: userRecord.uid,
         email: userRecord.email,
-        role: userRecord.role,
+        role: sanitizeRole(userRecord.role),
       });
 
       const broadcastSubject = `🎉 Selamat Datang di EVORA, ${userRecord.name}! Jadwal Event & Promo Spesial`;
@@ -305,7 +129,7 @@ async function startServer() {
           name: userRecord.name,
           email: userRecord.email,
           role: sanitizeRole(userRecord.role),
-          verified: userRecord.verified,
+          verified: true,
         },
         avatarConfig: userRecord.avatarConfig ? JSON.parse(userRecord.avatarConfig) : null,
         broadcastEmail: {
@@ -317,7 +141,7 @@ async function startServer() {
         },
       });
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : 'Verifikasi OTP gagal.';
+      const msg = error instanceof Error ? error.message : 'Gagal memproses pendaftaran.';
       res.status(500).json({ error: msg });
     }
   });
@@ -337,20 +161,13 @@ async function startServer() {
       const userRecord = await findUserByEmail(cleanEmail);
       if (!userRecord || !userRecord.passwordHash) {
         res.status(401).json({
-          error: 'Email belum terdaftar atau memakai Google Sign-In. Silakan Registrasi Akun dulu.',
+          error: 'Email belum terdaftar atau memakai Google Sign-In. Silakan Daftar Akun dulu.',
         });
         return;
       }
 
       if (!verifyPassword(cleanPassword, userRecord.passwordHash)) {
         res.status(401).json({ error: 'Kata sandi tidak sesuai. Silakan periksa kembali.' });
-        return;
-      }
-
-      if (!userRecord.verified) {
-        res.status(403).json({
-          error: 'Akun belum terverifikasi OTP Gmail. Silakan registrasi ulang untuk verifikasi.',
-        });
         return;
       }
 
@@ -538,148 +355,6 @@ async function startServer() {
       const msg = error instanceof Error ? error.message : 'Gagal mengirim broadcast.';
       res.status(500).json({ error: msg });
     }
-  });
-
-  // ================= BOT AI EVORA (SYSTEMATIC GEMINI CHAT) =================
-  app.post('/api/chat', async (req, res) => {
-    const apiKey = process.env.GEMINI_API_KEY?.trim();
-    if (!apiKey) {
-      res.status(500).json({
-        error: 'GEMINI_API_KEY belum dikonfigurasi pada panel Settings > Secrets.',
-      });
-      return;
-    }
-
-    const { messages } = req.body as {
-      messages?: Array<{ role: 'user' | 'assistant'; text: string }>;
-    };
-
-    if (!Array.isArray(messages) || messages.length === 0) {
-      res.status(400).json({ error: 'Pesan chat tidak boleh kosong.' });
-      return;
-    }
-
-    // Normalize turns: must start with 'user' and cleanly alternate 'user' <-> 'model'
-    const normalizedContents: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [];
-    for (const raw of messages.slice(-12)) {
-      const text = String(raw?.text || '').trim().slice(0, 2000);
-      if (!text) continue;
-      const role: 'user' | 'model' = raw.role === 'assistant' ? 'model' : 'user';
-      if (normalizedContents.length === 0 && role === 'model') {
-        continue;
-      }
-      const prev = normalizedContents[normalizedContents.length - 1];
-      if (prev && prev.role === role) {
-        prev.parts[0].text = `${prev.parts[0].text}\n${text}`;
-      } else {
-        normalizedContents.push({ role, parts: [{ text }] });
-      }
-    }
-
-    if (normalizedContents.length === 0) {
-      res.status(400).json({ error: 'Ketik pertanyaan terlebih dahulu untuk Bot AI.' });
-      return;
-    }
-
-    const ai = new GoogleGenAI({
-      apiKey,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        },
-      },
-    });
-
-    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-    const callModel = async (modelName: string) => {
-      const config =
-        modelName === 'gemini-4-hydrogen'
-          ? {
-              systemInstruction: EVORA_SYSTEM_INSTRUCTION,
-              thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-            }
-          : {
-              systemInstruction: EVORA_SYSTEM_INSTRUCTION,
-            };
-      return ai.models.generateContent({
-        model: modelName,
-        contents: normalizedContents,
-        config,
-      });
-    };
-
-    const parseGeminiError = (err: unknown): { status: number; message: string } => {
-      const anyErr = err as { status?: number; message?: string };
-      const rawMsg = String(anyErr?.message || '');
-      let status = typeof anyErr?.status === 'number' ? anyErr.status : 500;
-      let detail = rawMsg;
-
-      try {
-        const parsed = JSON.parse(rawMsg) as { error?: { code?: number; message?: string; status?: string } };
-        if (parsed?.error?.code) status = parsed.error.code;
-        if (parsed?.error?.message) detail = parsed.error.message;
-      } catch {
-        // non-JSON message
-      }
-
-      if (status === 403 || detail.includes('API_KEY_INVALID') || detail.includes('PERMISSION_DENIED')) {
-        return {
-          status,
-          message: 'Kunci API Gemini belum valid atau izin belum aktif. Periksa GEMINI_API_KEY di panel Settings > Secrets.',
-        };
-      }
-      if (status === 429 || detail.includes('RESOURCE_EXHAUSTED')) {
-        return {
-          status: 429,
-          message: 'Kuota permintaan Gemini AI sedang penuh. Tunggu beberapa saat lalu coba lagi.',
-        };
-      }
-      if (status === 503 || detail.includes('UNAVAILABLE') || detail.includes('high demand')) {
-        return {
-          status: 503,
-          message: 'Server Gemini AI sedang mengalami lonjakan trafik sementara. Silakan klik Kirim / Coba Lagi dalam beberapa detik.',
-        };
-      }
-      return {
-        status,
-        message: detail || 'Terjadi kesalahan saat menghubungi Bot AI EVORA.',
-      };
-    };
-
-    const modelsToTry = ['gemini-4-hydrogen', 'gemini-3.1-flash-lite'];
-    let lastError: unknown = null;
-
-    for (const modelName of modelsToTry) {
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          const response = await callModel(modelName);
-          const replyText = response.text?.trim();
-          if (replyText) {
-            res.json({ reply: replyText, model: modelName });
-            return;
-          }
-        } catch (err: unknown) {
-          lastError = err;
-          const parsed = parseGeminiError(err);
-          const isTransient = parsed.status === 503 || parsed.status === 500 || parsed.status === 429;
-          if (!isTransient) {
-            res.status(parsed.status >= 400 && parsed.status < 600 ? parsed.status : 500).json({
-              error: parsed.message,
-            });
-            return;
-          }
-          if (attempt === 0) {
-            await sleep(500);
-          }
-        }
-      }
-    }
-
-    const finalErr = parseGeminiError(lastError);
-    res.status(finalErr.status >= 400 && finalErr.status < 600 ? finalErr.status : 502).json({
-      error: finalErr.message,
-    });
   });
 
   if (process.env.NODE_ENV !== 'production') {

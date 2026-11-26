@@ -75,7 +75,16 @@ export interface AvatarConfig {
   makeupStyle: 'none' | 'blush-pink' | 'blush-peach' | 'freckles' | 'pastel-shadow';
   shirtStyle: 'tee' | 'ribbon-uniform' | 'collar' | 'dress' | 'aloha' | 'hoodie' | 'overall';
   shirtColor: string;
-  jacketStyle: 'none' | 'cardigan' | 'denim' | 'varsity' | 'blazer' | 'sweater-vest' | 'parka';
+  jacketStyle:
+    | 'none'
+    | 'almet-unj'
+    | 'jas-pr'
+    | 'cardigan'
+    | 'denim'
+    | 'varsity'
+    | 'blazer'
+    | 'sweater-vest'
+    | 'parka';
   jacketColor: string;
   shoeStyle: 'sneakers' | 'loafers' | 'maryjane' | 'boots';
   shoeColor: string;

@@ -24,24 +24,6 @@ export function verifyPassword(password: string, storedHash: string): boolean {
   return crypto.timingSafeEqual(keyBuf, derivedBuf);
 }
 
-export function generateSixDigitOtp(): string {
-  return crypto.randomInt(100000, 999999).toString();
-}
-
-export function hashOtp(email: string, otp: string): string {
-  return crypto
-    .createHmac('sha256', getSigningSecret())
-    .update(`${email.trim().toLowerCase()}:${otp.trim()}`)
-    .digest('hex');
-}
-
-export function verifyOtpHash(email: string, otp: string, expectedHash: string): boolean {
-  const actual = Buffer.from(hashOtp(email, otp), 'hex');
-  const expected = Buffer.from(expectedHash, 'hex');
-  if (actual.length !== expected.length) return false;
-  return crypto.timingSafeEqual(actual, expected);
-}
-
 export interface EvoraSessionPayload {
   uid: string;
   email: string;
@@ -108,7 +90,7 @@ export const requireAuth = async (
 
   const token = authHeader.slice('Bearer '.length).trim();
 
-  // 1. Try EVORA signed session token (Email + OTP users)
+  // 1. Try EVORA signed session token (Email + Password users)
   const localSession = verifySessionToken(token);
   if (localSession) {
     req.authUser = {

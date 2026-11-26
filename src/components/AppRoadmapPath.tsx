@@ -18,7 +18,7 @@ export const AppRoadmapPath: React.FC<AppRoadmapPathProps> = ({
     {
       num: '01',
       title: 'Masuk & Pilih Peran',
-      desc: 'Login Peserta, Panitia, atau Admin dengan OTP.',
+      desc: 'Daftar manual & masuk sebagai Peserta, Panitia, atau Admin.',
       icon: LogIn,
       color: '#377EC0',
       bg: '#E8F5FA',
@@ -56,12 +56,12 @@ export const AppRoadmapPath: React.FC<AppRoadmapPathProps> = ({
   return (
     <section id="alur-kerja" className="py-8 md:py-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white/95 rounded-[34px] p-6 sm:p-9 shadow-xl shadow-[#377EC0]/10 border border-[#9FD2D6]/60 overflow-hidden relative">
+        <div className="bg-white/95 rounded-[34px] p-6 sm:p-9 pixel-card overflow-hidden relative">
           <div className="text-center max-w-xl mx-auto mb-8 space-y-1.5">
-            <p className="text-xs font-extrabold tracking-widest uppercase text-[#377EC0]">
+            <p className="font-arcade text-[11px] tracking-widest uppercase text-[#377EC0]">
               Peta Jalan EVORA
             </p>
-            <h2 className="font-pixel text-2xl sm:text-4xl text-slate-900 tracking-tight">
+            <h2 className="font-pixel text-2xl sm:text-4xl text-[#0F2347] tracking-tight">
               Alur Aplikasi Step-by-Step
             </h2>
             <p className="text-xs sm:text-sm font-bold text-slate-500">

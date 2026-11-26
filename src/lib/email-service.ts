@@ -15,62 +15,6 @@ function getRoleLabel(role: string): string {
   return 'Peserta Event';
 }
 
-export function buildOtpEmailHtml(params: {
-  name: string;
-  email: string;
-  role: string;
-  otp: string;
-}): string {
-  const safeName = escapeHtml(params.name);
-  const safeEmail = escapeHtml(params.email);
-  const safeRole = escapeHtml(getRoleLabel(params.role));
-  const digits = params.otp.split('');
-
-  return `<!doctype html>
-<html lang="id">
-<head><meta charset="utf-8"><title>Kode OTP EVORA</title></head>
-<body style="margin:0;padding:24px;background-color:#E8F5FA;font-family:'Plus Jakarta Sans',Arial,sans-serif;color:#0F172A;">
-  <div style="max-width:560px;margin:0 auto;background:#FFFFFF;border-radius:28px;overflow:hidden;border:2px solid #9FD2D6;box-shadow:0 18px 40px rgba(55,126,192,0.14);">
-    <div style="background:linear-gradient(135deg,#377EC0,#5460AC);padding:28px 28px 22px;text-align:center;color:#FFFFFF;">
-      <div style="display:inline-block;padding:6px 14px;border-radius:999px;background:rgba(255,255,255,0.18);font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;">
-        EVORA · Verifikasi Keamanan Gmail
-      </div>
-      <h1 style="margin:12px 0 4px;font-size:26px;font-weight:800;letter-spacing:-0.5px;">Kode OTP Verifikasi Kamu</h1>
-      <p style="margin:0;font-size:13px;opacity:0.92;">Halo <strong>${safeName}</strong>, satu langkah lagi menuju dunia event EVORA!</p>
-    </div>
-
-    <div style="padding:28px;">
-      <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#334155;">
-        Gunakan 6 digit kode OTP di bawah ini untuk memverifikasi pendaftaran akun <strong>${safeRole}</strong> dengan email <strong>${safeEmail}</strong>:
-      </p>
-
-      <div style="background:#F4FAFC;border:2px dashed #377EC0;border-radius:20px;padding:20px 14px;text-align:center;margin:20px 0;">
-        <div style="display:inline-block;">
-          ${digits
-            .map(
-              (d) =>
-                `<span style="display:inline-block;width:40px;height:48px;line-height:48px;margin:0 4px;background:#FFFFFF;border:2px solid #9FD2D6;border-radius:12px;font-size:24px;font-weight:800;color:#1E3A8A;font-family:monospace;">${escapeHtml(d)}</span>`
-            )
-            .join('')}
-        </div>
-        <p style="margin:12px 0 0;font-size:12px;font-weight:700;color:#F7891F;">
-          Berlaku selama 10 menit · Jangan bagikan kode ini kepada siapa pun
-        </p>
-      </div>
-
-      <p style="margin:0;font-size:12px;line-height:1.6;color:#64748B;">
-        Setelah kode dimasukkan, kami juga akan mengirimkan <strong>Welcome Broadcast EVORA</strong> berisi jadwal event seru & kode promo khusus ke Gmail kamu.
-      </p>
-    </div>
-
-    <div style="background:#F8FAFC;padding:16px 28px;border-top:1px solid #E2E8F0;text-align:center;font-size:11px;color:#64748B;">
-      <strong>EVORA</strong> · Karya Muhammad Satrio Wibisono · CS WA 089603963329 · @msriotsss
-    </div>
-  </div>
-</body>
-</html>`;
-}
-
 export function buildWelcomeBroadcastEmailHtml(params: {
   name: string;
   email: string;
@@ -156,7 +100,7 @@ export function buildWelcomeBroadcastEmailHtml(params: {
         </tr>
         <tr>
           <td style="background:#F5F3FF;padding:10px 12px;border-radius:12px;">
-            <strong>4. Bot AI & Customer Service:</strong> Tanya Bot AI EVORA kapan saja atau chat WA CS 089603963329.
+            <strong>4. Customer Service & Masukan:</strong> Hubungi WA CS 089603963329 atau kirim masukan ke msriotss@gmail.com.
           </td>
         </tr>
       </table>
@@ -254,7 +198,7 @@ export async function sendEvoraEmail(params: {
       deliveryMode: 'preview',
       previewHtml: params.html,
       notice:
-        'Mode Pratinjau Aktif: Kode OTP & email tetap siap dipakai langsung di layar. (Opsional: isi SMTP_USER & 16-digit Gmail App Password di Secrets untuk kirim ke inbox Gmail.)',
+        'Mode Pratinjau Aktif: Tampilan email broadcast tetap dapat dilihat langsung di layar.',
     };
   }
 
@@ -296,7 +240,7 @@ export async function sendEvoraEmail(params: {
     delivered: false,
     deliveryMode: 'preview',
     previewHtml: params.html,
-    notice: `${errSummary} Gunakan kode OTP & pratinjau email langsung di bawah ini.`,
+    notice: `${errSummary} Pratinjau email tersedia di layar.`,
   };
 }
 

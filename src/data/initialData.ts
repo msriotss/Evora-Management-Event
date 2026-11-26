@@ -177,14 +177,14 @@ export const INITIAL_ORDERS: TicketOrder[] = [
 ];
 
 export const INITIAL_STREAK: StreakState = {
-  currentDays: 14,
+  currentDays: 0,
   longestDays: 21,
-  isFrozen: false,
-  freezeTokens: 2,
-  monthlyEventsHosted: 3,
+  isFrozen: true,
+  freezeTokens: 0,
+  monthlyEventsHosted: 0,
   monthlyHostGoal: 5,
-  monthlyEventsJoined: 4,
-  activeDaysInMonth: [2, 3, 5, 7, 8, 10, 12, 13, 15, 17, 19, 21, 22, 24, 25],
+  monthlyEventsJoined: 0,
+  activeDaysInMonth: [2, 3, 5, 7, 8, 10, 12, 13, 15, 17, 19, 21, 22, 24],
   unlockedPets: ['koko-kamera', 'mika-mic'],
   questBestScore: 180,
   completedDailyGoals: ['goal-map'],
@@ -255,10 +255,11 @@ export const AVATAR_PALETTES = {
     { name: 'Biru Muda', hex: '#9FD2D6' },
     { name: 'Indigo', hex: '#5460AC' },
     { name: 'Mint', hex: '#12BAAA' },
+    { name: 'Almet UNJ', hex: '#0B5E4F' },
     { name: 'Kuning Cerah', hex: '#FBDF54' },
     { name: 'Oranye', hex: '#F7891F' },
     { name: 'Merah Coral', hex: '#F04F52' },
-    { name: 'Hitam Arang', hex: '#2D3748' },
+    { name: 'Hitam Jas PR', hex: '#1B1E26' },
     { name: 'Krem Hangat', hex: '#FAF0CA' },
   ],
 };

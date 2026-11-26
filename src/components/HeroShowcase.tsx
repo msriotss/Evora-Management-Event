@@ -84,51 +84,63 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({
     <section className="pt-6 pb-8 md:pt-10 md:pb-14 relative overflow-hidden">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
-          {/* LEFT: Bold Pixel + Editorial Value Proposition (Always stays above layered phones) */}
+          {/* LEFT: Bold Pixel + Blue Value Proposition (Always stays above layered phones) */}
           <div className="lg:col-span-6 relative z-30 space-y-5 text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 text-xs font-extrabold tracking-widest uppercase text-[#377EC0]">
-              {isFrozen ? (
-                <Snowflake className="w-4 h-4 text-[#377EC0]" />
-              ) : (
-                <Flame className="w-4 h-4 text-[#F7891F]" />
-              )}
-              <span>
-                {isFrozen ? 'Api Streak Beku' : 'Streak Panitia Menyala'} · {streakDays} Hari · {monthlyHosted} Event Bulan Ini
-              </span>
+            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3">
+              <div className="inline-flex items-center px-3 py-1.5 rounded-2xl bg-white border-2 border-[#9FD2D6] shadow-[0_4px_0_rgba(55,126,192,0.16)]">
+                <img
+                  src="/evora-logo.png"
+                  alt="Logo EVORA"
+                  className="h-8 w-auto object-contain"
+                />
+              </div>
+
+              <div className="inline-flex items-center gap-2 text-xs font-extrabold tracking-wide uppercase text-[#0F2347] bg-white/90 px-3.5 py-2 rounded-2xl border-2 border-[#9FD2D6] shadow-xs">
+                {isFrozen ? (
+                  <Snowflake className="w-4 h-4 text-[#377EC0]" />
+                ) : (
+                  <Flame className="w-4 h-4 text-[#F7891F] fill-[#F7891F]" />
+                )}
+                <span>
+                  {isFrozen
+                    ? 'Api Beku · Daftar & Ikut Panitia'
+                    : `Api Menyala · ${streakDays} Hari · ${monthlyHosted} Event`}
+                </span>
+              </div>
             </div>
 
-            <h1 className="font-pixel hero-text-stroke text-4xl sm:text-5xl lg:text-[54px] text-[#1E3A8A] tracking-tight leading-[1.1] text-balance">
+            <h1 className="font-pixel hero-text-stroke text-4xl sm:text-5xl lg:text-[54px] text-[#377EC0] tracking-tight leading-[1.1] text-balance">
               Temukan event seru, pantau jadwal, & kejar streak panitiamu!
             </h1>
 
             <p className="text-sm sm:text-base font-bold text-slate-600 leading-relaxed max-w-xl mx-auto lg:mx-0">
-              Eksplorasi lokasi konser, festival, dan workshop di Google Maps secara real-time, atur avatar panitia kustommu, dan raih streak bulanan ala TikTok.
+              Eksplorasi lokasi konser, festival, dan workshop di Google Maps secara real-time, atur avatar panitia kustommu, dan nyalakan api streak saat ikut kepanitiaan.
             </p>
 
-            {/* Primary + Secondary Actions (No caption row below per user request) */}
+            {/* Primary + Secondary Actions */}
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 pt-1">
               <button
                 type="button"
                 onClick={onExploreMap}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-[#377EC0] hover:bg-[#5460AC] text-white text-sm font-extrabold rounded-2xl shadow-lg shadow-[#377EC0]/25 active:scale-[0.98] transition-all whitespace-nowrap shrink-0 cursor-pointer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-[#377EC0] hover:bg-[#5460AC] text-white text-sm font-extrabold rounded-2xl pixel-btn whitespace-nowrap shrink-0 cursor-pointer"
               >
-                <Compass className="w-4 h-4" />
+                <Compass className="w-4 h-4 text-[#FBDF54]" />
                 Jelajahi Google Maps
               </button>
 
               <button
                 type="button"
                 onClick={() => onOpenAuth('register', 'organizer')}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3.5 bg-white hover:bg-[#FFF4E5] text-slate-800 hover:text-[#F7891F] text-sm font-extrabold rounded-2xl border border-[#9FD2D6] shadow-md shadow-[#377EC0]/10 transition-all whitespace-nowrap shrink-0 cursor-pointer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3.5 bg-white hover:bg-[#E8F5FA] text-[#377EC0] text-sm font-extrabold rounded-2xl border-2 border-[#9FD2D6] shadow-[0_4px_0_#9FD2D6] active:translate-y-[2px] transition-all whitespace-nowrap shrink-0 cursor-pointer"
               >
-                <Users className="w-4 h-4 text-[#F7891F]" />
+                <Users className="w-4 h-4 text-[#12BAAA]" />
                 Daftar Panitia
               </button>
 
               <button
                 type="button"
                 onClick={onOpenGame}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3.5 bg-[#FBDF54] hover:bg-[#F7891F] hover:text-white text-slate-900 text-sm font-extrabold rounded-2xl shadow-md transition-all whitespace-nowrap shrink-0 cursor-pointer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3.5 bg-[#FBDF54] hover:bg-[#F7891F] hover:text-white text-[#0F2347] text-sm font-extrabold rounded-2xl border-2 border-[#F7891F]/60 shadow-[0_4px_0_#D97706] active:translate-y-[2px] transition-all whitespace-nowrap shrink-0 cursor-pointer"
               >
                 <Gamepad2 className="w-4 h-4" />
                 Main Quest

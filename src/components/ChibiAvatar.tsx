@@ -653,8 +653,20 @@ export const ChibiAvatar = forwardRef<SVGSVGElement, ChibiAvatarProps>(
     };
 
     const renderBodyAndOutfit = () => {
-      const isDress = config.shirtStyle === 'dress';
+      const isJasPr = config.jacketStyle === 'jas-pr';
+      const isAlmetUnj = config.jacketStyle === 'almet-unj';
+      const isDress = !isJasPr && config.shirtStyle === 'dress';
       const isSkirt = config.gender === 'cewek' || isDress;
+
+      const activeJacketFill = isJasPr
+        ? '#1B1E26'
+        : isAlmetUnj
+        ? config.jacketColor === '#FFFFFF' || config.jacketColor === '#377EC0'
+          ? '#0B5E4F'
+          : config.jacketColor
+        : config.jacketColor;
+      const activeJacketShade = shadeHex(activeJacketFill, -22);
+      const sleeveFill = config.jacketStyle !== 'none' ? activeJacketFill : config.shirtColor;
 
       return (
         <g>
@@ -662,8 +674,8 @@ export const ChibiAvatar = forwardRef<SVGSVGElement, ChibiAvatarProps>(
           <rect x="94" y="232" width="16" height="44" rx="8" fill={config.skinColor} />
           <rect x="130" y="232" width="16" height="44" rx="8" fill={config.skinColor} />
           {/* Socks */}
-          <rect x="94" y="252" width="16" height="22" rx="4" fill="#FFFFFF" />
-          <rect x="130" y="252" width="16" height="22" rx="4" fill="#FFFFFF" />
+          <rect x="94" y="252" width="16" height="22" rx="4" fill={isJasPr ? '#1E293B' : '#FFFFFF'} />
+          <rect x="130" y="252" width="16" height="22" rx="4" fill={isJasPr ? '#1E293B' : '#FFFFFF'} />
 
           {/* Shoes */}
           {config.shoeStyle === 'boots' ? (
@@ -696,105 +708,242 @@ export const ChibiAvatar = forwardRef<SVGSVGElement, ChibiAvatarProps>(
             </g>
           )}
 
-          {/* Bottoms (Skirt vs Pants/Shorts) */}
+          {/* Bottoms (Bawahan Hitam otomatis untuk Jas PR, atau Rok/Celana reguler) */}
           {isSkirt ? (
             <g>
               <path
                 d="M84 218 L156 218 L168 256 Q120 264 72 256 Z"
-                fill={isDress ? config.shirtColor : '#CBD5E1'}
-                stroke={isDress ? shirtShade : '#94A3B8'}
+                fill={isJasPr ? '#181A20' : isDress ? config.shirtColor : '#CBD5E1'}
+                stroke={isJasPr ? '#090A0F' : isDress ? shirtShade : '#94A3B8'}
                 strokeWidth="2"
               />
-              <line x1="98" y1="222" x2="92" y2="256" stroke={isDress ? shirtShade : '#94A3B8'} strokeWidth="1.6" />
-              <line x1="120" y1="222" x2="120" y2="258" stroke={isDress ? shirtShade : '#94A3B8'} strokeWidth="1.6" />
-              <line x1="142" y1="222" x2="148" y2="256" stroke={isDress ? shirtShade : '#94A3B8'} strokeWidth="1.6" />
+              <line x1="98" y1="222" x2="92" y2="256" stroke={isJasPr ? '#2D313D' : isDress ? shirtShade : '#94A3B8'} strokeWidth="1.6" />
+              <line x1="120" y1="222" x2="120" y2="258" stroke={isJasPr ? '#2D313D' : isDress ? shirtShade : '#94A3B8'} strokeWidth="1.6" />
+              <line x1="142" y1="222" x2="148" y2="256" stroke={isJasPr ? '#2D313D' : isDress ? shirtShade : '#94A3B8'} strokeWidth="1.6" />
             </g>
           ) : (
             <g>
               <path
-                d="M84 218 L156 218 L156 254 L126 254 L120 236 L114 254 L84 254 Z"
-                fill={config.gender === 'cowok' ? '#334155' : '#475569'}
-                stroke="#1E293B"
+                d="M84 218 L156 218 L156 256 L126 256 L120 236 L114 256 L84 256 Z"
+                fill={isJasPr ? '#181A20' : config.gender === 'cowok' ? '#334155' : '#475569'}
+                stroke={isJasPr ? '#090A0F' : '#1E293B'}
                 strokeWidth="1.8"
               />
+              {isJasPr && (
+                <g stroke="#2D313D" strokeWidth="1.2">
+                  <line x1="99" y1="225" x2="99" y2="252" />
+                  <line x1="141" y1="225" x2="141" y2="252" />
+                </g>
+              )}
             </g>
           )}
 
           {/* Arms & Cute Round Hands */}
           {!holdingCamera && (
             <g>
-              <path d="M84 176 L58 214" stroke={config.jacketStyle !== 'none' ? config.jacketColor : config.shirtColor} strokeWidth="18" strokeLinecap="round" />
+              <path d="M84 176 L58 214" stroke={sleeveFill} strokeWidth="18" strokeLinecap="round" />
+              {isJasPr && (
+                <path d="M62 208 L57 215" stroke="#FFFFFF" strokeWidth="15" strokeLinecap="round" />
+              )}
               <circle cx="55" cy="218" r="10" fill={config.skinColor} stroke={skinShade} strokeWidth="1.5" />
               {isExpressing ? (
                 <g>
-                  <path d="M156 176 L190 150" stroke={config.jacketStyle !== 'none' ? config.jacketColor : config.shirtColor} strokeWidth="18" strokeLinecap="round" />
+                  <path d="M156 176 L190 150" stroke={sleeveFill} strokeWidth="18" strokeLinecap="round" />
+                  {isJasPr && (
+                    <path d="M184 154 L191 149" stroke="#FFFFFF" strokeWidth="15" strokeLinecap="round" />
+                  )}
                   <circle cx="195" cy="146" r="10" fill={config.skinColor} stroke={skinShade} strokeWidth="1.5" />
                 </g>
               ) : (
                 <g>
-                  <path d="M156 176 L182 214" stroke={config.jacketStyle !== 'none' ? config.jacketColor : config.shirtColor} strokeWidth="18" strokeLinecap="round" />
+                  <path d="M156 176 L182 214" stroke={sleeveFill} strokeWidth="18" strokeLinecap="round" />
+                  {isJasPr && (
+                    <path d="M178 208 L183 215" stroke="#FFFFFF" strokeWidth="15" strokeLinecap="round" />
+                  )}
                   <circle cx="185" cy="218" r="10" fill={config.skinColor} stroke={skinShade} strokeWidth="1.5" />
                 </g>
               )}
             </g>
           )}
 
-          {/* Torso / Shirt */}
+          {/* Torso / Shirt (Jas PR always wears crisp white dress shirt inner) */}
           <path
             d="M84 170 Q120 162 156 170 L160 226 Q120 232 80 226 Z"
-            fill={config.shirtColor}
-            stroke={shirtShade}
+            fill={isJasPr ? '#FFFFFF' : config.shirtColor}
+            stroke={isJasPr ? '#CBD5E1' : shirtShade}
             strokeWidth="2"
           />
 
-          {/* Shirt Details */}
-          {config.shirtStyle === 'ribbon-uniform' && (
+          {/* White Formal Inner Shirt Details for Jas PR */}
+          {isJasPr ? (
             <g>
-              <path d="M92 169 L120 194 L148 169 L140 165 L120 182 L100 165 Z" fill="#9FD2D6" stroke="#377EC0" strokeWidth="1.5" />
-              <path d="M120 184 L108 196 L112 182 Z" fill="#F04F52" />
-              <path d="M120 184 L132 196 L128 182 Z" fill="#F04F52" />
-              <circle cx="120" cy="185" r="4" fill="#FBDF54" />
+              {/* Crisp White Dress Collar */}
+              <polygon points="103,167 120,183 111,185 98,171" fill="#F8FAFC" stroke="#94A3B8" strokeWidth="1.4" />
+              <polygon points="137,167 120,183 129,185 142,171" fill="#F8FAFC" stroke="#94A3B8" strokeWidth="1.4" />
+              {/* Subtle Placket & Collar Buttons */}
+              <line x1="120" y1="183" x2="120" y2="225" stroke="#CBD5E1" strokeWidth="1.4" />
+              <circle cx="120" cy="192" r="1.8" fill="#64748B" />
+              <circle cx="120" cy="204" r="1.8" fill="#64748B" />
+              <circle cx="120" cy="216" r="1.8" fill="#64748B" />
             </g>
-          )}
-          {config.shirtStyle === 'collar' && (
-            <g>
-              <path d="M102 167 L120 182 L138 167" fill="none" stroke={shirtShade} strokeWidth="2.5" />
-              <circle cx="120" cy="190" r="2" fill={shirtShade} />
-              <circle cx="120" cy="202" r="2" fill={shirtShade} />
-            </g>
-          )}
-          {config.shirtStyle === 'aloha' && (
-            <g>
-              <path d="M102 167 L120 180 L138 167" fill="none" stroke="#12BAAA" strokeWidth="2.4" />
-              <circle cx="96" cy="192" r="5" fill="#12BAAA" opacity="0.85" />
-              <circle cx="140" cy="198" r="5.5" fill="#377EC0" opacity="0.85" />
-              <circle cx="114" cy="212" r="4.5" fill="#12BAAA" opacity="0.85" />
-              <circle cx="128" cy="184" r="4" fill="#F7891F" opacity="0.85" />
-            </g>
-          )}
-          {config.shirtStyle === 'hoodie' && (
-            <g>
-              <path d="M96 168 Q120 184 144 168" fill="none" stroke={shirtShade} strokeWidth="4" strokeLinecap="round" />
-              <line x1="112" y1="178" x2="110" y2="196" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" />
-              <line x1="128" y1="178" x2="130" y2="196" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" />
-              <rect x="96" y="204" width="48" height="18" rx="6" fill={shirtShade} opacity="0.45" />
-            </g>
-          )}
-          {config.shirtStyle === 'overall' && (
-            <g>
-              <rect x="94" y="170" width="9" height="32" fill="#377EC0" />
-              <rect x="137" y="170" width="9" height="32" fill="#377EC0" />
-              <rect x="90" y="192" width="60" height="34" rx="6" fill="#377EC0" stroke="#1E40AF" strokeWidth="1.5" />
-              <circle cx="99" cy="197" r="2.6" fill="#FBDF54" />
-              <circle cx="141" cy="197" r="2.6" fill="#FBDF54" />
-              <rect x="108" y="202" width="24" height="14" rx="4" fill="#5460AC" />
-            </g>
+          ) : (
+            <>
+              {/* Shirt Details */}
+              {config.shirtStyle === 'ribbon-uniform' && (
+                <g>
+                  <path d="M92 169 L120 194 L148 169 L140 165 L120 182 L100 165 Z" fill="#9FD2D6" stroke="#377EC0" strokeWidth="1.5" />
+                  <path d="M120 184 L108 196 L112 182 Z" fill="#F04F52" />
+                  <path d="M120 184 L132 196 L128 182 Z" fill="#F04F52" />
+                  <circle cx="120" cy="185" r="4" fill="#FBDF54" />
+                </g>
+              )}
+              {config.shirtStyle === 'collar' && (
+                <g>
+                  <path d="M102 167 L120 182 L138 167" fill="none" stroke={shirtShade} strokeWidth="2.5" />
+                  <circle cx="120" cy="190" r="2" fill={shirtShade} />
+                  <circle cx="120" cy="202" r="2" fill={shirtShade} />
+                </g>
+              )}
+              {config.shirtStyle === 'aloha' && (
+                <g>
+                  <path d="M102 167 L120 180 L138 167" fill="none" stroke="#12BAAA" strokeWidth="2.4" />
+                  <circle cx="96" cy="192" r="5" fill="#12BAAA" opacity="0.85" />
+                  <circle cx="140" cy="198" r="5.5" fill="#377EC0" opacity="0.85" />
+                  <circle cx="114" cy="212" r="4.5" fill="#12BAAA" opacity="0.85" />
+                  <circle cx="128" cy="184" r="4" fill="#F7891F" opacity="0.85" />
+                </g>
+              )}
+              {config.shirtStyle === 'hoodie' && (
+                <g>
+                  <path d="M96 168 Q120 184 144 168" fill="none" stroke={shirtShade} strokeWidth="4" strokeLinecap="round" />
+                  <line x1="112" y1="178" x2="110" y2="196" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" />
+                  <line x1="128" y1="178" x2="130" y2="196" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" />
+                  <rect x="96" y="204" width="48" height="18" rx="6" fill={shirtShade} opacity="0.45" />
+                </g>
+              )}
+              {config.shirtStyle === 'overall' && (
+                <g>
+                  <rect x="94" y="170" width="9" height="32" fill="#377EC0" />
+                  <rect x="137" y="170" width="9" height="32" fill="#377EC0" />
+                  <rect x="90" y="192" width="60" height="34" rx="6" fill="#377EC0" stroke="#1E40AF" strokeWidth="1.5" />
+                  <circle cx="99" cy="197" r="2.6" fill="#FBDF54" />
+                  <circle cx="141" cy="197" r="2.6" fill="#FBDF54" />
+                  <rect x="108" y="202" width="24" height="14" rx="4" fill="#5460AC" />
+                </g>
+              )}
+            </>
           )}
 
           {/* Jacket Layer */}
           {config.jacketStyle !== 'none' && (
             <g>
-              {config.jacketStyle === 'sweater-vest' ? (
+              {config.jacketStyle === 'almet-unj' ? (
+                <g>
+                  {/* Tailored Almet UNJ Panels (Hijau Emerald UNJ) */}
+                  <path
+                    d="M82 170 L108 170 L114 202 L114 227 L78 225 Z"
+                    fill={activeJacketFill}
+                    stroke={activeJacketShade}
+                    strokeWidth="2"
+                  />
+                  <path
+                    d="M158 170 L132 170 L126 202 L126 227 L162 225 Z"
+                    fill={activeJacketFill}
+                    stroke={activeJacketShade}
+                    strokeWidth="2"
+                  />
+                  {/* Almet Center Overlap */}
+                  <path
+                    d="M111 196 L129 196 L128 227 L112 227 Z"
+                    fill={activeJacketFill}
+                    stroke={activeJacketShade}
+                    strokeWidth="1.5"
+                  />
+                  {/* Classic Almamater Notched Lapels */}
+                  <polygon
+                    points="106,170 116,196 101,192 98,176"
+                    fill={shadeHex(activeJacketFill, 14)}
+                    stroke={activeJacketShade}
+                    strokeWidth="1.4"
+                    strokeLinejoin="round"
+                  />
+                  <polygon
+                    points="134,170 124,196 139,192 142,176"
+                    fill={shadeHex(activeJacketFill, 14)}
+                    stroke={activeJacketShade}
+                    strokeWidth="1.4"
+                    strokeLinejoin="round"
+                  />
+                  {/* Brass UNJ Buttons */}
+                  <circle cx="120" cy="203" r="2.2" fill="#FBDF54" stroke="#B45309" strokeWidth="0.7" />
+                  <circle cx="120" cy="214" r="2.2" fill="#FBDF54" stroke="#B45309" strokeWidth="0.7" />
+                  {/* Pocket Trim */}
+                  <line x1="84" y1="210" x2="102" y2="210" stroke={activeJacketShade} strokeWidth="1.8" strokeLinecap="round" />
+                  <line x1="138" y1="210" x2="156" y2="210" stroke={activeJacketShade} strokeWidth="1.8" strokeLinecap="round" />
+                  {/* Official UNJ Logo Crest on Left Chest */}
+                  <circle cx="145" cy="190" r="9.5" fill="#FFFFFF" fillOpacity="0.18" />
+                  <image
+                    href="/unj-logo.png"
+                    x="136.5"
+                    y="181.5"
+                    width="17"
+                    height="17"
+                    preserveAspectRatio="xMidYMid meet"
+                  />
+                </g>
+              ) : config.jacketStyle === 'jas-pr' ? (
+                <g>
+                  {/* Tailored Black PRDC Blazer */}
+                  <path
+                    d="M81 170 L106 170 L115 204 L115 227 L77 225 Z"
+                    fill="#1B1E26"
+                    stroke="#0B0D12"
+                    strokeWidth="2"
+                  />
+                  <path
+                    d="M159 170 L134 170 L125 204 L125 227 L163 225 Z"
+                    fill="#1B1E26"
+                    stroke="#0B0D12"
+                    strokeWidth="2"
+                  />
+                  {/* Center Button Closure */}
+                  <path
+                    d="M113 200 L127 200 L126 227 L114 227 Z"
+                    fill="#1B1E26"
+                    stroke="#0B0D12"
+                    strokeWidth="1.4"
+                  />
+                  {/* Sharp Formal Suit Lapels */}
+                  <polygon
+                    points="105,170 116,200 100,192 97,175"
+                    fill="#262A35"
+                    stroke="#0B0D12"
+                    strokeWidth="1.5"
+                    strokeLinejoin="round"
+                  />
+                  <polygon
+                    points="135,170 124,200 140,192 143,175"
+                    fill="#262A35"
+                    stroke="#0B0D12"
+                    strokeWidth="1.5"
+                    strokeLinejoin="round"
+                  />
+                  {/* Subtle Pocket Square + Suit Buttons */}
+                  <polygon points="86,193 96,193 94,188 88,189" fill="#377EC0" />
+                  <line x1="84" y1="194" x2="100" y2="194" stroke="#475569" strokeWidth="1.4" />
+                  <circle cx="120" cy="206" r="2.2" fill="#334155" stroke="#94A3B8" strokeWidth="0.7" />
+                  <circle cx="120" cy="217" r="2.2" fill="#334155" stroke="#94A3B8" strokeWidth="0.7" />
+                  {/* Official PRDC Logo Crest on Left Chest */}
+                  <image
+                    href="/prdc-logo.png"
+                    x="136"
+                    y="181"
+                    width="18"
+                    height="18"
+                    preserveAspectRatio="xMidYMid meet"
+                  />
+                </g>
+              ) : config.jacketStyle === 'sweater-vest' ? (
                 <path
                   d="M84 170 L108 170 L120 190 L132 170 L156 170 L160 226 Q120 232 80 226 Z"
                   fill={config.jacketColor}
@@ -850,14 +999,14 @@ export const ChibiAvatar = forwardRef<SVGSVGElement, ChibiAvatarProps>(
               <path
                 d="M84 176 Q66 196 86 202"
                 fill="none"
-                stroke={config.jacketStyle !== 'none' ? config.jacketColor : config.shirtColor}
+                stroke={sleeveFill}
                 strokeWidth="16"
                 strokeLinecap="round"
               />
               <path
                 d="M156 176 Q174 196 154 202"
                 fill="none"
-                stroke={config.jacketStyle !== 'none' ? config.jacketColor : config.shirtColor}
+                stroke={sleeveFill}
                 strokeWidth="16"
                 strokeLinecap="round"
               />

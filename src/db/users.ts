@@ -1,6 +1,6 @@
-import { desc, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { db } from './index.ts';
-import { emailBroadcasts, otpTokens, users } from './schema.ts';
+import { emailBroadcasts, users } from './schema.ts';
 
 export async function getOrCreateGoogleUser(uid: string, email: string, name: string, role = 'peserta') {
   try {
@@ -118,78 +118,6 @@ export async function saveUserAvatar(uid: string, avatarJson: string) {
   } catch (error) {
     console.error('Database query failed in saveUserAvatar:', error);
     throw new Error('Gagal menyimpan konfigurasi avatar.', { cause: error });
-  }
-}
-
-export async function createOtpChallenge(params: {
-  email: string;
-  name: string;
-  role: string;
-  passwordHash: string;
-  otpHash: string;
-  expiresAt: Date;
-}) {
-  try {
-    const cleanEmail = params.email.trim().toLowerCase();
-    await db
-      .update(otpTokens)
-      .set({ consumed: true })
-      .where(eq(otpTokens.email, cleanEmail));
-
-    const inserted = await db
-      .insert(otpTokens)
-      .values({
-        email: cleanEmail,
-        name: params.name.trim(),
-        role: params.role,
-        passwordHash: params.passwordHash,
-        otpHash: params.otpHash,
-        attempts: 0,
-        consumed: false,
-        expiresAt: params.expiresAt,
-      })
-      .returning();
-    return inserted[0];
-  } catch (error) {
-    console.error('Database query failed in createOtpChallenge:', error);
-    throw new Error('Gagal membuat tantangan OTP.', { cause: error });
-  }
-}
-
-export async function getLatestOtpChallenge(email: string) {
-  try {
-    const cleanEmail = email.trim().toLowerCase();
-    const rows = await db
-      .select()
-      .from(otpTokens)
-      .where(eq(otpTokens.email, cleanEmail))
-      .orderBy(desc(otpTokens.id))
-      .limit(1);
-    return rows[0] ?? null;
-  } catch (error) {
-    console.error('Database query failed in getLatestOtpChallenge:', error);
-    throw new Error('Gagal mengambil kode OTP.', { cause: error });
-  }
-}
-
-export async function incrementOtpAttempt(id: number, currentAttempts: number) {
-  try {
-    await db
-      .update(otpTokens)
-      .set({ attempts: currentAttempts + 1 })
-      .where(eq(otpTokens.id, id));
-  } catch (error) {
-    console.error('Database query failed in incrementOtpAttempt:', error);
-    throw new Error('Gagal memperbarui percobaan OTP.', { cause: error });
-  }
-}
-
-export async function markOtpConsumed(id: number) {
-  try {
-    await db.update(otpTokens).set({ consumed: true }).where(eq(otpTokens.id, id));
-  } catch (error) {
-    console.error('Database query failed in markOtpConsumed:', error);
-    throw new Error('Gagal menyelesaikan verifikasi OTP.', { cause: error });
   }
 }
 
